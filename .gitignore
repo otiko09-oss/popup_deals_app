@@ -1,0 +1,10 @@
+
+build/
+.dart_tool/
+.gradle/
+android/.gradle/
+android/app/build/
+ios/Pods/
+.idea/
+key.properties
+

@@ -1,0 +1,23 @@
+{
+  "@@locale": "ka",
+  "appTitle": "Popup Deals",
+  "home": "მთავარი",
+  "deals": "შეთავაზებები",
+  "orders": "შეკვეთები",
+  "profile": "პროფილი",
+  "login": "შესვლა",
+  "register": "რეგისტრაცია",
+  "recommendedDeals": "რეკომენდებული",
+  "nearbyDeals": "ახლოს",
+  "trendingDeals": "ტრენდული",
+  "newDeals": "ახალი",
+  "categories": "კატეგორიები",
+  "seeAll": "ყველა",
+  "saveDeal": "შენახვა",
+  "redeemDeal": "QR კოდი",
+  "subscription": "გამოწერა",
+  "adminPanel": "ადმინ პანელი",
+  "scanQr": "QR სკანირება",
+  "businessAccount": "ბიზნესი",
+  "customerAccount": "მომხმარებელი"
+}

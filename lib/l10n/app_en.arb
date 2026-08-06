@@ -1,0 +1,23 @@
+{
+  "@@locale": "en",
+  "appTitle": "Popup Deals",
+  "home": "Home",
+  "deals": "Deals",
+  "orders": "Orders",
+  "profile": "Profile",
+  "login": "Sign In",
+  "register": "Create Account",
+  "recommendedDeals": "Recommended Deals",
+  "nearbyDeals": "Nearby Deals",
+  "trendingDeals": "Trending Deals",
+  "newDeals": "New Deals",
+  "categories": "Categories",
+  "seeAll": "See All",
+  "saveDeal": "Save",
+  "redeemDeal": "Get QR Code",
+  "subscription": "Subscription",
+  "adminPanel": "Admin Panel",
+  "scanQr": "Scan QR",
+  "businessAccount": "Business",
+  "customerAccount": "Customer"
+}

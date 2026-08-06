@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "377491166081",
+    "project_id": "popup-deals-e1127",
+    "storage_bucket": "popup-deals-e1127.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:377491166081:android:3bdfc3ab0c03c088d88e80",
+        "android_client_info": {
+          "package_name": "com.popupdeals.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "377491166081-hrv0uho1nigdnp5tb9vbj8orjfet396r.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.popupdeals.app",
+            "certificate_hash": "3b8aeacff43fce491036489fac727d1d4c68b776"
+          }
+        },
+        {
+          "client_id": "377491166081-v05db1n6cqf9lc3tdhh70o55830pbcqa.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCFPax-a3xjjEK8oNBuylmkjAPAC_0IXT8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "377491166081-v05db1n6cqf9lc3tdhh70o55830pbcqa.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "377491166081-bfmqrgm9vvjo9jccb1pfc0g1nvtrejv9.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.popupDealsApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
