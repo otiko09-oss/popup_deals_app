@@ -11,6 +11,7 @@ class AppUser extends Equatable {
     required this.favorites,
     this.displayName,
     this.photoUrl,
+    this.isAdmin = false,
   });
 
   factory AppUser.fromJson(Map<String, dynamic> json) => AppUser(
@@ -23,6 +24,7 @@ class AppUser extends Equatable {
         lastSignIn: DateTime.parse(json['lastSignIn'] as String),
         isVerified: json['isVerified'] as bool,
         favorites: List<String>.from(json['favorites'] as List? ?? []),
+        isAdmin: json['isAdmin'] as bool? ?? false,
       );
   final String uid;
   final String email;
@@ -33,6 +35,9 @@ class AppUser extends Equatable {
   final DateTime lastSignIn;
   final bool isVerified;
   final List<String> favorites;
+  // Server-controlled flag. Never set by client registration flow —
+  // only Firestore console / a trusted backend should ever write this to true.
+  final bool isAdmin;
 
   Map<String, dynamic> toJson() => {
         'uid': uid,
@@ -44,6 +49,7 @@ class AppUser extends Equatable {
         'lastSignIn': lastSignIn.toIso8601String(),
         'isVerified': isVerified,
         'favorites': favorites,
+        'isAdmin': isAdmin,
       };
 
   AppUser copyWith({
@@ -56,6 +62,7 @@ class AppUser extends Equatable {
     DateTime? lastSignIn,
     bool? isVerified,
     List<String>? favorites,
+    bool? isAdmin,
   }) =>
       AppUser(
         uid: uid ?? this.uid,
@@ -67,6 +74,7 @@ class AppUser extends Equatable {
         lastSignIn: lastSignIn ?? this.lastSignIn,
         isVerified: isVerified ?? this.isVerified,
         favorites: favorites ?? this.favorites,
+        isAdmin: isAdmin ?? this.isAdmin,
       );
 
   @override
@@ -80,5 +88,6 @@ class AppUser extends Equatable {
         lastSignIn,
         isVerified,
         favorites,
+        isAdmin,
       ];
 }

@@ -1,1 +1,38 @@
-{"flutter":{"platforms":{"dart":{"lib/firebase_options.dart":{"projectId":"popup-deals-e1127","configurations":{"android":"1:377491166081:android:3bdfc3ab0c03c088d88e80","ios":"1:377491166081:ios:c5fe4466274ea217d88e80"}}},"android":{"default":{"projectId":"popup-deals-e1127","appId":"1:377491166081:android:3bdfc3ab0c03c088d88e80","fileOutput":"android/app/google-services.json"}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "popup-deals-e1127",
+          "configurations": {
+            "android": "1:377491166081:android:3bdfc3ab0c03c088d88e80",
+            "ios": "1:377491166081:ios:c5fe4466274ea217d88e80"
+          }
+        }
+      },
+      "android": {
+        "default": {
+          "projectId": "popup-deals-e1127",
+          "appId": "1:377491166081:android:3bdfc3ab0c03c088d88e80",
+          "fileOutput": "android/app/google-services.json"
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log"
+      ]
+    }
+  ]
+}

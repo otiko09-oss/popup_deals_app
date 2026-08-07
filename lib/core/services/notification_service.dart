@@ -15,7 +15,9 @@ class NotificationService {
         notificationCenter: AppleNotificationSetting.notSupported,
         criticalAlert: AppleNotificationSetting.notSupported,
         sound: AppleNotificationSetting.notSupported,
-        showPreviews: AppleShowPreviewSetting.unspecified,
+        showPreviews: AppleShowPreviewSetting.never,
+        providesAppNotificationSettings: AppleNotificationSetting.notSupported,
+        timeSensitive: AppleNotificationSetting.notSupported,
       );
     }
   }
@@ -42,7 +44,9 @@ class NotificationService {
         notificationCenter: AppleNotificationSetting.notSupported,
         criticalAlert: AppleNotificationSetting.notSupported,
         sound: AppleNotificationSetting.notSupported,
-        showPreviews: AppleShowPreviewSetting.unspecified,
+        showPreviews: AppleShowPreviewSetting.never,
+        providesAppNotificationSettings: AppleNotificationSetting.notSupported,
+        timeSensitive: AppleNotificationSetting.notSupported,
       );
     }
   }

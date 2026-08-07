@@ -8,3 +8,15 @@ ios/Pods/
 .idea/
 key.properties
 
+
+# Cloud Functions (Node.js backend)
+functions/node_modules/
+functions/.env
+functions/lib/
+firebase-debug.log
+firebase-debug.*.log
+.firebase/
+
+# Firebase client config (contains project keys — keep out of git, use .example as template)
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist

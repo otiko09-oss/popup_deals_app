@@ -29,11 +29,70 @@ import '../../features/subscription/presentation/pages/subscription_page.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import 'app_routes.dart';
 
+// Routes reachable without being logged in.
+const _publicRoutes = {
+  AppRoutes.splash,
+  AppRoutes.login,
+  AppRoutes.register,
+  AppRoutes.forgotPassword,
+};
+
+// Routes only a 'restaurant' account should reach.
+const _businessOnlyRoutes = {
+  AppRoutes.businessDeals,
+  AppRoutes.createDeal,
+  AppRoutes.editDeal,
+  AppRoutes.businessOrders,
+  AppRoutes.analytics,
+  AppRoutes.businessOnboarding,
+  AppRoutes.subscription,
+  AppRoutes.qrScanner,
+};
+
 final routerProvider = Provider<GoRouter>((ref) {
-  ref.watch(authProvider);
+  final authState = ref.watch(authProvider);
 
   return GoRouter(
     initialLocation: AppRoutes.splash,
+    redirect: (context, state) {
+      final path = state.matchedLocation;
+
+      // Still resolving the initial auth session — let the splash screen
+      // show instead of bouncing the user around while we don't know yet.
+      if (authState.isLoading) {
+        return path == AppRoutes.splash ? null : AppRoutes.splash;
+      }
+
+      final user = authState.asData?.value;
+      final loggedIn = user != null;
+
+      // Not logged in and trying to reach a protected route -> send to login.
+      if (!loggedIn && !_publicRoutes.contains(path)) {
+        return AppRoutes.login;
+      }
+
+      // Logged in but sitting on splash/login/register -> send to the
+      // right home for their account type.
+      if (loggedIn && _publicRoutes.contains(path)) {
+        return user.userType == 'restaurant'
+            ? AppRoutes.businessDeals
+            : AppRoutes.home;
+      }
+
+      // Admin dashboard requires the isAdmin flag specifically.
+      if (path == AppRoutes.admin && !(user?.isAdmin ?? false)) {
+        return loggedIn ? AppRoutes.home : AppRoutes.login;
+      }
+
+      // Business-only screens: customers get bounced to their home feed.
+      if (loggedIn &&
+          _businessOnlyRoutes.contains(path) &&
+          user.userType != 'restaurant') {
+        return AppRoutes.home;
+      }
+
+      return null;
+    },
     routes: [
       GoRoute(
         path: AppRoutes.splash,

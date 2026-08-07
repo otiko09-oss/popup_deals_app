@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/subscription_plans.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -46,23 +47,27 @@ class SubscriptionPage extends ConsumerWidget {
                 isCurrent: current?.planId == plan.id && current!.isActive,
                 onSelect: () async {
                   try {
-                    await ref
+                    final checkoutUrl = await ref
                         .read(subscriptionServiceProvider)
-                        .activatePlan(
+                        .startCheckout(
                           businessId: businessId,
                           planId: plan.id,
                         );
-                    if (context.mounted) {
+                    final launched = await launchUrl(
+                      Uri.parse(checkoutUrl),
+                      mode: LaunchMode.externalApplication,
+                    );
+                    if (!launched && context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('${plan.name} plan activated!'),
+                        const SnackBar(
+                          content: Text('Could not open the checkout page.'),
                         ),
                       );
                     }
                   } on Object catch (e) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(e.toString())),
+                        SnackBar(content: Text('Checkout failed: $e')),
                       );
                     }
                   }
@@ -70,8 +75,8 @@ class SubscriptionPage extends ConsumerWidget {
               ),
             const SizedBox(height: 24),
             Text(
-              'Payments via Stripe, Apple Pay, and Google Pay will be enabled '
-              'when the backend checkout is connected.',
+              'You will be redirected to Stripe to complete payment securely. '
+              'Your plan activates automatically once payment succeeds.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
