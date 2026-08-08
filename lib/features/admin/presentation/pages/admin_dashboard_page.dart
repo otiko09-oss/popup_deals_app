@@ -17,14 +17,16 @@ class AdminDashboardPage extends ConsumerWidget {
     final statsAsync = ref.watch(platformStatsProvider);
 
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Admin Panel'),
           bottom: const TabBar(
+            isScrollable: true,
             tabs: [
               Tab(text: 'Overview'),
               Tab(text: 'Users'),
+              Tab(text: 'Businesses'),
               Tab(text: 'Deals'),
             ],
           ),
@@ -37,6 +39,7 @@ class AdminDashboardPage extends ConsumerWidget {
               data: (stats) => _OverviewTab(stats: stats),
             ),
             const _UsersTab(),
+            const _BusinessesTab(),
             const _DealsModerationTab(),
           ],
         ),
@@ -168,6 +171,64 @@ class _UsersTab extends ConsumerWidget {
                   await ref.read(adminServiceProvider).setUserBlocked(
                         user['id'] as String,
                         blocked: !blocked,
+                      );
+                },
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _BusinessesTab extends ConsumerWidget {
+  const _BusinessesTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final businessesStream = ref.watch(adminServiceProvider).businessesStream();
+
+    return StreamBuilder(
+      stream: businessesStream,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final businesses = snapshot.data!;
+        if (businesses.isEmpty) {
+          return const Center(child: Text('No businesses yet'));
+        }
+
+        return ListView.builder(
+          itemCount: businesses.length,
+          itemBuilder: (context, index) {
+            final business = businesses[index];
+            final verified = business['isVerified'] == true;
+
+            return ListTile(
+              leading: CircleAvatar(
+                backgroundColor:
+                    verified ? Colors.green.withValues(alpha: 0.15) : null,
+                child: Icon(
+                  Icons.store,
+                  color: verified ? Colors.green : null,
+                ),
+              ),
+              title: Text(business['name'] as String? ?? 'Unnamed business'),
+              subtitle: Text(
+                verified ? 'Verified' : 'Not verified',
+                style: TextStyle(
+                  color: verified ? Colors.green : Colors.orange,
+                ),
+              ),
+              trailing: Switch(
+                value: verified,
+                onChanged: (value) async {
+                  await ref.read(adminServiceProvider).setBusinessVerified(
+                        business['id'] as String,
+                        verified: value,
                       );
                 },
               ),

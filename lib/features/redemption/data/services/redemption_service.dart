@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:logger/logger.dart';
-import 'package:uuid/uuid.dart';
 
 import '../models/redemption_model.dart';
 
@@ -13,7 +12,6 @@ class RedemptionService {
 
   final FirebaseFirestore _firestore;
   final Logger _logger;
-  final Uuid _uuid = const Uuid();
 
   /// Creates a QR redemption record when a customer claims a deal.
   Future<RedemptionModel> createRedemption({
