@@ -21,6 +21,18 @@ class BusinessDealsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('My Deals'),
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner),
+            tooltip: 'Scan QR to redeem',
+            onPressed: () => context.push(AppRoutes.qrScanner),
+          ),
+          IconButton(
+            icon: const Icon(Icons.group_outlined),
+            tooltip: 'Manage Staff',
+            onPressed: () => context.push(AppRoutes.manageStaff),
+          ),
+        ],
       ),
       body: dealsStream.when(
         data: (deals) {

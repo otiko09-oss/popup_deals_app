@@ -5,7 +5,7 @@ class NotificationService {
     try {
       return await FirebaseMessaging.instance.getNotificationSettings();
     } on Object {
-      return NotificationSettings(
+      return const NotificationSettings(
         authorizationStatus: AuthorizationStatus.notDetermined,
         alert: AppleNotificationSetting.notSupported,
         announcement: AppleNotificationSetting.notSupported,
@@ -24,17 +24,9 @@ class NotificationService {
 
   Future<NotificationSettings> requestPermission() async {
     try {
-      return await FirebaseMessaging.instance.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-        announcement: true,
-        carPlay: true,
-        criticalAlert: true,
-        provisional: false,
-      );
+      return await FirebaseMessaging.instance.requestPermission();
     } on Object {
-      return NotificationSettings(
+      return const NotificationSettings(
         authorizationStatus: AuthorizationStatus.notDetermined,
         alert: AppleNotificationSetting.notSupported,
         announcement: AppleNotificationSetting.notSupported,

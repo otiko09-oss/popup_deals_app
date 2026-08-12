@@ -38,7 +38,8 @@ class AppRoutes {
 
   // QR Redemption
   static const String qrScanner = '/business/scan-qr';
-
+  static const String manageStaff = '/business/staff';
+  
   // Admin
   static const String admin = '/admin';
 }

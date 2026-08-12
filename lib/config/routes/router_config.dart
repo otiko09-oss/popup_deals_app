@@ -8,6 +8,7 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/business/presentation/pages/business_deals_page.dart';
 import '../../features/business/presentation/pages/business_onboarding_page.dart';
+import '../../features/business/presentation/pages/manage_staff_page.dart';
 import '../../features/business/presentation/screens/add_deal_screen.dart';
 import '../../features/business/presentation/screens/analytics_screen.dart';
 import '../../features/business/presentation/screens/edit_deal_screen.dart';
@@ -24,7 +25,7 @@ import '../../features/profile/presentation/pages/privacy_policy_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/profile/presentation/pages/settings_page.dart';
 import '../../features/profile/presentation/pages/terms_of_service_page.dart';
-import '../../features/redemption/presentation/pages/qr_scanner_page.dart';
+import '../../features/redemption/presentation/pages/qr_scanner_entry_point.dart';
 import '../../features/subscription/presentation/pages/subscription_page.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import 'app_routes.dart';
@@ -47,6 +48,7 @@ const _businessOnlyRoutes = {
   AppRoutes.businessOnboarding,
   AppRoutes.subscription,
   AppRoutes.qrScanner,
+  AppRoutes.manageStaff,
 };
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -167,11 +169,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.qrScanner,
         name: 'qrScanner',
-        builder: (context, state) {
-          final businessId =
-              ref.read(authStateProvider).asData?.value?.uid ?? '';
-          return QrScannerPage(businessId: businessId);
-        },
+        builder: (context, state) => const QrScannerEntryPoint(),
+      ),
+      GoRoute(
+        path: AppRoutes.manageStaff,
+        name: 'manageStaff',
+        builder: (context, state) => const ManageStaffPage(),
       ),
       GoRoute(
         path: AppRoutes.admin,

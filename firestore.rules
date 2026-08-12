@@ -7,18 +7,28 @@ rules_version = '2';
 // businesses/{businessId} — the document ID *is* the owner's Firebase Auth
 // uid (see business_onboarding_page.dart: 'id': firebaseUser.uid). There is
 // no separate ownerUid field. So "is this caller the owner" is just
-// `businessId == request.auth.uid`, and for deals, `restaurantId` holds
-// that same businessId — checked the same way.
+// `businessId == request.auth.uid`, and for deals/orders/redemptions,
+// businessId/restaurantId fields hold that same value.
+//
+// business_staff/{staffUid} — one doc per staff member, doc ID is the
+// staff member's own uid. Fields: businessId, isActive, createdAt. Only the
+// business owner (or an admin) can create/update/delete these; a staff
+// member with isActive:true can act on behalf of that business for
+// order/deal/redemption updates (e.g. scanning QR codes), but cannot touch
+// business-level settings, subscriptions, or moderation.
 //
 // Design notes:
 //  - "deals" are publicly readable (it's a discovery app) but writes are
-//    restricted to the owning business, and moderationStatus/isActive can
-//    only be flipped server-side (Cloud Functions / admin), not by clients.
-//    New deals can only be created by an approved business.
+//    restricted to the owning business (or its active staff), and
+//    moderationStatus/isActive can only be flipped server-side
+//    (Cloud Functions / admin), not by clients. New deals can only be
+//    created by an approved business.
 //  - "subscriptions" are written only by the Cloud Functions backend
 //    (Stripe webhook uses the Admin SDK, which bypasses these rules) —
 //    clients get read-only access to their own business's subscription.
-//  - "redemptions" are created at redemption time and immutable afterward.
+//  - "redemptions" are created at claim time; only the business owner/staff
+//    performing the scan may update status/redeemedAt — every other field
+//    is immutable after creation. Never deletable by clients.
 //  - Admin access is granted via the isAdmin field on the caller's own
 //    users/{uid} document. That field can only ever be set to true by
 //    another admin (see the users/{userId} rules below) — a user can
@@ -42,6 +52,19 @@ service cloud.firestore {
 
     function isApprovedBusiness(businessId) {
       return get(/databases/$(database)/documents/businesses/$(businessId)).data.status == 'approved';
+    }
+
+    // True if the caller is an active staff member of the given business.
+    function isStaffOf(businessId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/business_staff/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/business_staff/$(request.auth.uid)).data.businessId == businessId &&
+        get(/databases/$(database)/documents/business_staff/$(request.auth.uid)).data.isActive == true;
+    }
+
+    // True if the caller is the owner OR an active staff member of businessId.
+    function canActFor(businessId) {
+      return isOwner(businessId) || isStaffOf(businessId);
     }
 
     match /users/{userId} {
@@ -71,15 +94,28 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Only the business owner manages who their staff is.
+    match /business_staff/{staffUid} {
+      allow read: if isOwner(staffUid) ||
+        (isSignedIn() && isOwner(resource.data.businessId)) ||
+        isAdmin();
+      allow create: if isSignedIn() &&
+        isOwner(request.resource.data.businessId) &&
+        request.resource.data.businessId != staffUid; // owner can't add self as staff
+      allow update: if isSignedIn() && isOwner(resource.data.businessId) &&
+        !('businessId' in request.resource.data.diff(resource.data).affectedKeys());
+      allow delete: if isSignedIn() && isOwner(resource.data.businessId) || isAdmin();
+    }
+
     match /deals/{dealId} {
       allow read: if true;
       allow create: if isSignedIn() &&
         request.resource.data.restaurantId != null &&
-        isOwner(request.resource.data.restaurantId) &&
+        canActFor(request.resource.data.restaurantId) &&
         isApprovedBusiness(request.resource.data.restaurantId) &&
         request.resource.data.moderationStatus == 'pending';
       allow update: if (isSignedIn() &&
-        isOwner(resource.data.restaurantId) &&
+        canActFor(resource.data.restaurantId) &&
         !('moderationStatus' in request.resource.data.diff(resource.data).affectedKeys()) &&
         !('isActive' in request.resource.data.diff(resource.data).affectedKeys())
       ) || isAdmin();
@@ -89,19 +125,36 @@ service cloud.firestore {
 
     match /orders/{orderId} {
       allow read: if isSignedIn() &&
-        (resource.data.userId == request.auth.uid || isAdmin());
+        (resource.data.userId == request.auth.uid ||
+         canActFor(resource.data.businessId) ||
+         isAdmin());
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // The customer can update their own order (e.g. cancel); the
+      // business or its staff can update it too (e.g. mark completed on
+      // redemption) — but neither side can reassign who it belongs to.
+      allow update: if isSignedIn() &&
+        (resource.data.userId == request.auth.uid || canActFor(resource.data.businessId)) &&
+        !('userId' in request.resource.data.diff(resource.data).affectedKeys()) &&
+        !('businessId' in request.resource.data.diff(resource.data).affectedKeys());
       allow delete: if isAdmin();
     }
 
     match /redemptions/{redemptionId} {
       allow read: if isSignedIn() &&
         (resource.data.userId == request.auth.uid ||
-         resource.data.businessId == request.auth.uid ||
+         canActFor(resource.data.businessId) ||
          isAdmin());
       allow create: if isSignedIn();
-      allow update, delete: if false;
+      // Only the business (owner or active staff) performing the scan may
+      // update a redemption, and only to flip its status/redeemedAt —
+      // every identifying field is locked after creation.
+      allow update: if isSignedIn() &&
+        canActFor(resource.data.businessId) &&
+        !('userId' in request.resource.data.diff(resource.data).affectedKeys()) &&
+        !('businessId' in request.resource.data.diff(resource.data).affectedKeys()) &&
+        !('dealId' in request.resource.data.diff(resource.data).affectedKeys()) &&
+        !('orderId' in request.resource.data.diff(resource.data).affectedKeys());
+      allow delete: if false;
     }
 
     match /subscriptions/{businessId} {

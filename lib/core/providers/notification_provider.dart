@@ -9,14 +9,14 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
 final notificationSettingsProvider =
     FutureProvider<NotificationSettings>((ref) async {
   final service = ref.watch(notificationServiceProvider);
-  return await service.getNotificationSettings();
+  return service.getNotificationSettings();
 });
 
 final notificationPermissionRequestProvider =
     FutureProvider.family<NotificationSettings, bool>((ref, request) async {
   final service = ref.watch(notificationServiceProvider);
   if (!request) {
-    return await service.getNotificationSettings();
+    return service.getNotificationSettings();
   }
-  return await service.requestPermission();
+  return service.requestPermission();
 });

@@ -16,5 +16,5 @@ Future<void> main() async {
   final rounded = img.copyResize(image, width: 800, height: 800);
   final encoded = img.encodePng(rounded);
   await file.writeAsBytes(encoded, flush: true);
-  print('wrote ${file.path} (${file.statSync().size} bytes)');
+  stdout.writeln('wrote ${file.path} (${file.statSync().size} bytes)');
 }
