@@ -63,6 +63,16 @@ class AdminService {
     });
   }
 
+  Future<void> setBusinessStatus(String businessId,
+      {required String status}) async {
+    await _firestore.collection('businesses').doc(businessId).update({
+      'status': status,
+      'isVerified': status == 'approved',
+      'updatedAt': DateTime.now().toIso8601String(),
+    });
+    _logger.i('Business $businessId status=$status');
+  }
+
   Future<void> moderateDeal({
     required String dealId,
     required String status, // approved | rejected

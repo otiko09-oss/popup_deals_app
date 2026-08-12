@@ -3,47 +3,67 @@ rules_version = '2';
 // Popup Deals — Firestore security rules.
 // Deploy with: firebase deploy --only firestore:rules
 //
+// IMPORTANT — business ownership model:
+// businesses/{businessId} — the document ID *is* the owner's Firebase Auth
+// uid (see business_onboarding_page.dart: 'id': firebaseUser.uid). There is
+// no separate ownerUid field. So "is this caller the owner" is just
+// `businessId == request.auth.uid`, and for deals, `restaurantId` holds
+// that same businessId — checked the same way.
+//
 // Design notes:
-//  - "businesses" write access is limited to the business owner (ownerUid field).
 //  - "deals" are publicly readable (it's a discovery app) but writes are
 //    restricted to the owning business, and moderationStatus/isActive can
 //    only be flipped server-side (Cloud Functions / admin), not by clients.
+//    New deals can only be created by an approved business.
 //  - "subscriptions" are written only by the Cloud Functions backend
 //    (Stripe webhook uses the Admin SDK, which bypasses these rules) —
 //    clients get read-only access to their own business's subscription.
 //  - "redemptions" are created at redemption time and immutable afterward.
-//  - Admin access is gated on a custom claim `admin: true` set via Cloud
-//    Functions — there is no client-writable "isAdmin" flag anywhere.
-
-function isSignedIn() {
-  return request.auth != null;
-}
-
-function isOwner(uid) {
-  return isSignedIn() && request.auth.uid == uid;
-}
-
-function isAdmin() {
-  return isSignedIn() && request.auth.token.admin == true;
-}
+//  - Admin access is granted via the isAdmin field on the caller's own
+//    users/{uid} document. That field can only ever be set to true by
+//    another admin (see the users/{userId} rules below) — a user can
+//    never set isAdmin (or isBlocked) on their own document.
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    function isApprovedBusiness(businessId) {
+      return get(/databases/$(database)/documents/businesses/$(businessId)).data.status == 'approved';
+    }
+
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId);
+      allow create: if isOwner(userId) &&
+        (('isAdmin' in request.resource.data) == false || request.resource.data.isAdmin == false) &&
+        (('isBlocked' in request.resource.data) == false || request.resource.data.isBlocked == false);
       allow update: if isOwner(userId) &&
-        !('isBlocked' in request.resource.data.diff(resource.data).affectedKeys());
+        !('isBlocked' in request.resource.data.diff(resource.data).affectedKeys()) &&
+        !('isAdmin' in request.resource.data.diff(resource.data).affectedKeys());
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 
     match /businesses/{businessId} {
       allow read: if true;
-      allow create: if isSignedIn() && request.resource.data.ownerUid == request.auth.uid;
-      allow update: if (isSignedIn() && resource.data.ownerUid == request.auth.uid &&
-        !('isVerified' in request.resource.data.diff(resource.data).affectedKeys()) &&
+      // The business doc ID IS the owner's uid — no separate ownerUid field.
+      allow create: if isOwner(businessId) &&
+        (('status' in request.resource.data) == false ||
+          request.resource.data.status == 'pending');
+      allow update: if (isOwner(businessId) &&
+        !('status' in request.resource.data.diff(resource.data).affectedKeys()) &&
         !('subscriptionPlanId' in request.resource.data.diff(resource.data).affectedKeys()) &&
         !('subscriptionStatus' in request.resource.data.diff(resource.data).affectedKeys()) &&
         !('maxActiveDeals' in request.resource.data.diff(resource.data).affectedKeys())
@@ -55,15 +75,16 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isSignedIn() &&
         request.resource.data.restaurantId != null &&
-        get(/databases/$(database)/documents/businesses/$(request.resource.data.restaurantId)).data.ownerUid == request.auth.uid &&
+        isOwner(request.resource.data.restaurantId) &&
+        isApprovedBusiness(request.resource.data.restaurantId) &&
         request.resource.data.moderationStatus == 'pending';
       allow update: if (isSignedIn() &&
-        get(/databases/$(database)/documents/businesses/$(resource.data.restaurantId)).data.ownerUid == request.auth.uid &&
+        isOwner(resource.data.restaurantId) &&
         !('moderationStatus' in request.resource.data.diff(resource.data).affectedKeys()) &&
         !('isActive' in request.resource.data.diff(resource.data).affectedKeys())
       ) || isAdmin();
       allow delete: if isAdmin() ||
-        (isSignedIn() && get(/databases/$(database)/documents/businesses/$(resource.data.restaurantId)).data.ownerUid == request.auth.uid);
+        (isSignedIn() && isOwner(resource.data.restaurantId));
     }
 
     match /orders/{orderId} {
@@ -85,7 +106,7 @@ service cloud.firestore {
 
     match /subscriptions/{businessId} {
       allow read: if isSignedIn() &&
-        (get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerUid == request.auth.uid || isAdmin());
+        (isOwner(businessId) || isAdmin());
       allow write: if false;
     }
 

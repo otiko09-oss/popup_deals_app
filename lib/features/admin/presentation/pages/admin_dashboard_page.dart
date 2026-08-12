@@ -185,6 +185,13 @@ class _UsersTab extends ConsumerWidget {
 class _BusinessesTab extends ConsumerWidget {
   const _BusinessesTab();
 
+  static const _statusColors = {
+    'pending': Colors.orange,
+    'approved': Colors.green,
+    'rejected': Colors.red,
+    'suspended': Colors.grey,
+  };
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final businessesStream = ref.watch(adminServiceProvider).businessesStream();
@@ -205,32 +212,97 @@ class _BusinessesTab extends ConsumerWidget {
           itemCount: businesses.length,
           itemBuilder: (context, index) {
             final business = businesses[index];
-            final verified = business['isVerified'] == true;
+            final id = business['id'] as String;
+            final status = business['status'] as String? ??
+                (business['isVerified'] == true ? 'approved' : 'pending');
+            final color = _statusColors[status] ?? Colors.grey;
 
-            return ListTile(
-              leading: CircleAvatar(
-                backgroundColor:
-                    verified ? Colors.green.withValues(alpha: 0.15) : null,
-                child: Icon(
-                  Icons.store,
-                  color: verified ? Colors.green : null,
+            return Card(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: color.withValues(alpha: 0.15),
+                          child: Icon(Icons.store, color: color),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                business['name'] as String? ??
+                                    'Unnamed business',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                status.toUpperCase(),
+                                style: TextStyle(
+                                    color: color, fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        if (status != 'approved')
+                          FilledButton.icon(
+                            icon: const Icon(Icons.check, size: 18),
+                            label: const Text('Approve'),
+                            onPressed: () => ref
+                                .read(adminServiceProvider)
+                                .setBusinessStatus(
+                                  id,
+                                  status: 'approved',
+                                ),
+                          ),
+                        if (status == 'pending')
+                          OutlinedButton.icon(
+                            icon: const Icon(Icons.close, size: 18),
+                            label: const Text('Reject'),
+                            onPressed: () => ref
+                                .read(adminServiceProvider)
+                                .setBusinessStatus(
+                                  id,
+                                  status: 'rejected',
+                                ),
+                          ),
+                        if (status == 'approved')
+                          OutlinedButton.icon(
+                            icon: const Icon(Icons.pause_circle, size: 18),
+                            label: const Text('Suspend'),
+                            onPressed: () => ref
+                                .read(adminServiceProvider)
+                                .setBusinessStatus(
+                                  id,
+                                  status: 'suspended',
+                                ),
+                          ),
+                        if (status == 'suspended')
+                          FilledButton.icon(
+                            icon: const Icon(Icons.play_circle, size: 18),
+                            label: const Text('Reinstate'),
+                            onPressed: () => ref
+                                .read(adminServiceProvider)
+                                .setBusinessStatus(
+                                  id,
+                                  status: 'approved',
+                                ),
+                          ),
+                      ],
+                    ),
+                  ],
                 ),
-              ),
-              title: Text(business['name'] as String? ?? 'Unnamed business'),
-              subtitle: Text(
-                verified ? 'Verified' : 'Not verified',
-                style: TextStyle(
-                  color: verified ? Colors.green : Colors.orange,
-                ),
-              ),
-              trailing: Switch(
-                value: verified,
-                onChanged: (value) async {
-                  await ref.read(adminServiceProvider).setBusinessVerified(
-                        business['id'] as String,
-                        verified: value,
-                      );
-                },
               ),
             );
           },
