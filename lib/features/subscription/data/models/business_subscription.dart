@@ -28,14 +28,26 @@ class BusinessSubscription extends Equatable {
 
   final String businessId;
   final String planId;
-  final String status; // active, inactive, cancelled, past_due
+  final String status; // trial, active, inactive, cancelled, past_due
   final DateTime startedAt;
   final DateTime? expiresAt;
   final String? stripeCustomerId;
   final String? stripeSubscriptionId;
 
+  bool get isTrialing =>
+      status == 'trial' &&
+      (expiresAt == null || DateTime.now().isBefore(expiresAt!));
+
+  /// Days left in the trial, floored at 0. Only meaningful when
+  /// [isTrialing] is true.
+  int get trialDaysRemaining {
+    if (expiresAt == null) return 0;
+    final remaining = expiresAt!.difference(DateTime.now()).inHours / 24;
+    return remaining.ceil().clamp(0, 30);
+  }
+
   bool get isActive =>
-      status == 'active' &&
+      (status == 'active' || status == 'trial') &&
       (expiresAt == null || DateTime.now().isBefore(expiresAt!));
 
   Map<String, dynamic> toJson() => {

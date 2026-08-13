@@ -160,7 +160,19 @@ service cloud.firestore {
     match /subscriptions/{businessId} {
       allow read: if isSignedIn() &&
         (isOwner(businessId) || isAdmin());
-      allow write: if false;
+      // Self-service exception: the owner may create their own initial
+      // 30-day trial, and may cancel it (status + expiresAt only) —
+      // everything else (activation, plan changes, billing fields) is
+      // written only by the Cloud Functions Stripe webhook (Admin SDK).
+      allow create: if isOwner(businessId) &&
+        request.resource.data.status == 'trial' &&
+        request.resource.data.businessId == businessId;
+      allow update: if isOwner(businessId) &&
+        resource.data.status == 'trial' &&
+        request.resource.data.status == 'cancelled' &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'expiresAt']);
+      allow delete: if false;
     }
 
     match /{document=**} {

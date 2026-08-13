@@ -7,6 +7,7 @@ import '../../../../config/routes/app_routes.dart';
 import '../../../../core/constants/marketplace_categories.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../subscription/data/services/subscription_service.dart';
 
 class BusinessOnboardingPage extends ConsumerStatefulWidget {
   const BusinessOnboardingPage({super.key});
@@ -58,7 +59,7 @@ class _BusinessOnboardingPageState
         'category': _category,
         'latitude': 0.0,
         'longitude': 0.0,
-        'isVerified': false,
+        'status': 'pending',
         'createdAt': now.toIso8601String(),
         'updatedAt': now.toIso8601String(),
         'profileComplete': true,
@@ -68,6 +69,16 @@ class _BusinessOnboardingPageState
           .collection('users')
           .doc(firebaseUser.uid)
           .update({'businessProfileComplete': true});
+
+      // Every newly registered business gets a 30-day free trial
+      // automatically — no payment info required up front.
+      try {
+        await SubscriptionService().startTrial(businessId: firebaseUser.uid);
+      } on Object catch (e) {
+        // Non-fatal: the business can still start a trial later from the
+        // subscription page if this failed for some reason.
+        debugPrint('Could not auto-start trial: $e');
+      }
 
       if (mounted) {
         context.go(AppRoutes.subscription);

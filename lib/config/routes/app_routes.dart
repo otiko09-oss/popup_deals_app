@@ -4,6 +4,7 @@ class AppRoutes {
 
   // Auth Routes
   static const String login = '/login';
+  static const String onboarding = '/onboarding';
   static const String register = '/register';
   static const String forgotPassword = '/forgot-password';
 
@@ -39,7 +40,7 @@ class AppRoutes {
   // QR Redemption
   static const String qrScanner = '/business/scan-qr';
   static const String manageStaff = '/business/staff';
-  
+
   // Admin
   static const String admin = '/admin';
 }

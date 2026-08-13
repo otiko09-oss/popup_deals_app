@@ -17,6 +17,7 @@ import '../../features/deals/presentation/pages/favorites_page.dart';
 import '../../features/deals/presentation/pages/popup_deals_feed_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/home/presentation/pages/main_shell.dart';
+import '../../features/home/presentation/pages/onboarding_page.dart';
 import '../../features/home/presentation/pages/splash_screen.dart';
 import '../../features/orders/presentation/pages/orders_page.dart';
 import '../../features/profile/presentation/pages/edit_profile_page.dart';
@@ -33,6 +34,7 @@ import 'app_routes.dart';
 // Routes reachable without being logged in.
 const _publicRoutes = {
   AppRoutes.splash,
+  AppRoutes.onboarding,
   AppRoutes.login,
   AppRoutes.register,
   AppRoutes.forgotPassword,
@@ -100,6 +102,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.splash,
         name: 'splash',
         builder: (context, state) => const SplashScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.onboarding,
+        name: 'onboarding',
+        builder: (context, state) => const OnboardingPage(),
       ),
       GoRoute(
         path: AppRoutes.login,

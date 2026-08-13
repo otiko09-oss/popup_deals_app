@@ -63,6 +63,34 @@ class SubscriptionService {
     }
   }
 
+  /// Starts a 30-day free trial for a newly registered business. Called
+  /// once, right after business registration — see
+  /// business_onboarding_page.dart. Writes are allowed for this specific
+  /// case by firestore.rules (initial trial creation only); every other
+  /// subscription write still goes through the Stripe webhook backend.
+  Future<BusinessSubscription> startTrial({
+    required String businessId,
+    String planId = 'starter',
+  }) async {
+    final plan = SubscriptionPlans.byId(planId) ?? SubscriptionPlans.starter;
+    final now = DateTime.now();
+    final subscription = BusinessSubscription(
+      businessId: businessId,
+      planId: plan.id,
+      status: 'trial',
+      startedAt: now,
+      expiresAt: now.add(const Duration(days: 30)),
+    );
+
+    await _firestore
+        .collection('subscriptions')
+        .doc(businessId)
+        .set(subscription.toJson());
+
+    _logger.i('Trial started for $businessId on plan ${plan.id}');
+    return subscription;
+  }
+
   Future<BusinessSubscription?> getSubscription(String businessId) async {
     final doc =
         await _firestore.collection('subscriptions').doc(businessId).get();
@@ -134,6 +162,9 @@ class SubscriptionService {
     return (activeDeals.count ?? 0) < plan.maxActiveDeals;
   }
 
+  /// Cancels immediately — allowed as a narrow self-service exception in
+  /// firestore.rules (only status:'cancelled' + expiresAt may be set by
+  /// the owner; every other subscription field stays backend-only).
   Future<void> cancelSubscription(String businessId) async {
     await _firestore.collection('subscriptions').doc(businessId).update({
       'status': 'cancelled',

@@ -44,7 +44,7 @@ class SubscriptionPage extends ConsumerWidget {
             for (final plan in SubscriptionPlans.all)
               _PlanCard(
                 plan: plan,
-                isCurrent: current?.planId == plan.id && current!.isActive,
+                isCurrent: current?.planId == plan.id && current!.status == 'active',
                 onSelect: () async {
                   try {
                     final checkoutUrl = await ref
@@ -97,22 +97,25 @@ class _CurrentPlanBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final plan =
         SubscriptionPlans.byId(subscription.planId) ?? SubscriptionPlans.starter;
+    final trialing = subscription.isTrialing;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppTheme.primaryColor, AppTheme.primaryVariant],
+        gradient: LinearGradient(
+          colors: trialing
+              ? [AppTheme.secondaryColor, AppTheme.primaryColor]
+              : const [AppTheme.primaryColor, AppTheme.primaryVariant],
         ),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Current Plan',
-            style: TextStyle(color: Colors.white70, fontSize: 13),
+          Text(
+            trialing ? 'Free Trial' : 'Current Plan',
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
           ),
           Text(
             plan.name,
@@ -122,7 +125,15 @@ class _CurrentPlanBanner extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          if (subscription.expiresAt != null)
+          if (trialing)
+            Text(
+              '${subscription.trialDaysRemaining} days left in your trial',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            )
+          else if (subscription.expiresAt != null)
             Text(
               'Renews ${_formatDate(subscription.expiresAt!)}',
               style: const TextStyle(color: Colors.white70),
