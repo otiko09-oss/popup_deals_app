@@ -5,21 +5,19 @@ class AppTheme {
   // Private constructor
   AppTheme._();
 
-  // Colors
-  static const Color primaryColor = Color(0xFFFF6B35); // Vibrant Orange
-  static const Color primaryVariant = Color(0xFFFF8C42); // Lighter Orange
-  static const Color secondaryColor = Color(0xFF004E89); // Deep Blue
-  static const Color accentColor = Color(
-    0xFF1DB959,
-  ); // Green (for success/deals)
+  // Colors — Popup Deals brand kit
+  static const Color primaryColor = Color(0xFFFFB800); // Brand Orange
+  static const Color primaryVariant = Color(0xFFFFC933); // Lighter Orange
+  static const Color secondaryColor = Color(0xFF6C5CE7); // Brand Purple
+  static const Color accentColor = Color(0xFF22C55E); // Brand Green
 
-  static const Color backgroundColor = Color(0xFFFAFAFA); // Off White
+  static const Color backgroundColor = Color(0xFFF2F4F7); // Brand Light Gray
   static const Color surfaceColor = Color(0xFFFFFFFF); // White
-  static const Color errorColor = Color(0xFFE53935); // Error Red
+  static const Color errorColor = Color(0xFFFF4D6D); // Brand Pink/Red
   static const Color warningColor = Color(0xFFFFA726); // Warning Orange
-  static const Color successColor = Color(0xFF43A047); // Success Green
+  static const Color successColor = Color(0xFF22C55E); // Brand Green
 
-  static const Color textPrimary = Color(0xFF212121); // Dark Text
+  static const Color textPrimary = Color(0xFF0D1321); // Brand Near-Black
   static const Color textSecondary = Color(0xFF757575); // Medium Grey
   static const Color textTertiary = Color(0xFFBDBDBD); // Light Grey
   static const Color dividerColor = Color(0xFFE0E0E0); // Divider Grey
@@ -56,63 +54,63 @@ class AppTheme {
         ),
 
         // Typography
-        textTheme: GoogleFonts.interTextTheme().copyWith(
-          displayLarge: GoogleFonts.inter(
+        textTheme: GoogleFonts.poppinsTextTheme().copyWith(
+          displayLarge: GoogleFonts.poppins(
             fontSize: 32,
             fontWeight: FontWeight.bold,
             color: textPrimary,
           ),
-          displayMedium: GoogleFonts.inter(
+          displayMedium: GoogleFonts.poppins(
             fontSize: 28,
             fontWeight: FontWeight.bold,
             color: textPrimary,
           ),
-          displaySmall: GoogleFonts.inter(
+          displaySmall: GoogleFonts.poppins(
             fontSize: 24,
             fontWeight: FontWeight.bold,
             color: textPrimary,
           ),
-          headlineMedium: GoogleFonts.inter(
+          headlineMedium: GoogleFonts.poppins(
             fontSize: 20,
             fontWeight: FontWeight.w600,
             color: textPrimary,
           ),
-          headlineSmall: GoogleFonts.inter(
+          headlineSmall: GoogleFonts.poppins(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: textPrimary,
           ),
-          titleLarge: GoogleFonts.inter(
+          titleLarge: GoogleFonts.poppins(
             fontSize: 16,
             fontWeight: FontWeight.w600,
             color: textPrimary,
           ),
-          titleMedium: GoogleFonts.inter(
+          titleMedium: GoogleFonts.poppins(
             fontSize: 14,
             fontWeight: FontWeight.w600,
             color: textPrimary,
           ),
-          titleSmall: GoogleFonts.inter(
+          titleSmall: GoogleFonts.poppins(
             fontSize: 12,
             fontWeight: FontWeight.w600,
             color: textPrimary,
           ),
-          bodyLarge: GoogleFonts.inter(
+          bodyLarge: GoogleFonts.poppins(
             fontSize: 16,
             fontWeight: FontWeight.w400,
             color: textPrimary,
           ),
-          bodyMedium: GoogleFonts.inter(
+          bodyMedium: GoogleFonts.poppins(
             fontSize: 14,
             fontWeight: FontWeight.w400,
             color: textSecondary,
           ),
-          bodySmall: GoogleFonts.inter(
+          bodySmall: GoogleFonts.poppins(
             fontSize: 12,
             fontWeight: FontWeight.w400,
             color: textTertiary,
           ),
-          labelLarge: GoogleFonts.inter(
+          labelLarge: GoogleFonts.poppins(
             fontSize: 14,
             fontWeight: FontWeight.w600,
             color: primaryColor,
@@ -125,7 +123,7 @@ class AppTheme {
           foregroundColor: textPrimary,
           elevation: 0,
           centerTitle: false,
-          titleTextStyle: GoogleFonts.inter(
+          titleTextStyle: GoogleFonts.poppins(
             fontSize: 20,
             fontWeight: FontWeight.w600,
             color: textPrimary,
@@ -159,7 +157,7 @@ class AppTheme {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(radiusLg),
             ),
-            textStyle: GoogleFonts.inter(
+            textStyle: GoogleFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
@@ -177,7 +175,7 @@ class AppTheme {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(radiusLg),
             ),
-            textStyle: GoogleFonts.inter(
+            textStyle: GoogleFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
@@ -191,7 +189,7 @@ class AppTheme {
               horizontal: spacingMd,
               vertical: spacingSm,
             ),
-            textStyle: GoogleFonts.inter(
+            textStyle: GoogleFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
@@ -226,17 +224,17 @@ class AppTheme {
             borderRadius: BorderRadius.circular(radiusLg),
             borderSide: const BorderSide(color: errorColor, width: 2),
           ),
-          hintStyle: GoogleFonts.inter(
+          hintStyle: GoogleFonts.poppins(
             fontSize: 14,
             fontWeight: FontWeight.w400,
             color: textTertiary,
           ),
-          labelStyle: GoogleFonts.inter(
+          labelStyle: GoogleFonts.poppins(
             fontSize: 14,
             fontWeight: FontWeight.w500,
             color: textSecondary,
           ),
-          errorStyle: GoogleFonts.inter(
+          errorStyle: GoogleFonts.poppins(
             fontSize: 12,
             fontWeight: FontWeight.w400,
             color: errorColor,
@@ -276,7 +274,7 @@ class AppTheme {
         // Snackbar Theme
         snackBarTheme: SnackBarThemeData(
           backgroundColor: textPrimary,
-          contentTextStyle: GoogleFonts.inter(
+          contentTextStyle: GoogleFonts.poppins(
             fontSize: 14,
             fontWeight: FontWeight.w400,
             color: Colors.white,
@@ -301,8 +299,8 @@ class AppTheme {
           surface: Color(0xFF1E1E1E),
         ),
         textTheme:
-            GoogleFonts.interTextTheme(ThemeData.dark().textTheme).copyWith(
-          displayLarge: GoogleFonts.inter(
+            GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme).copyWith(
+          displayLarge: GoogleFonts.poppins(
             fontSize: 32,
             fontWeight: FontWeight.bold,
             color: Colors.white,
@@ -313,7 +311,7 @@ class AppTheme {
           foregroundColor: Colors.white,
           elevation: 0,
           centerTitle: false,
-          titleTextStyle: GoogleFonts.inter(
+          titleTextStyle: GoogleFonts.poppins(
             fontSize: 20,
             fontWeight: FontWeight.w600,
             color: Colors.white,
