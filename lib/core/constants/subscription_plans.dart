@@ -9,7 +9,26 @@ class SubscriptionPlan {
     required this.hasAnalytics,
     required this.hasPriorityPlacement,
     required this.hasAdvertising,
+    this.isActive = true,
+    this.sortOrder = 0,
   });
+
+  /// Reads a plan document from the `plans` Firestore collection — see
+  /// PlansRepository. [docId] is used as the plan id (the doc ID), so
+  /// the 'id' field itself is optional in the stored data.
+  factory SubscriptionPlan.fromJson(String docId, Map<String, dynamic> json) =>
+      SubscriptionPlan(
+        id: docId,
+        name: json['name'] as String? ?? docId,
+        priceUsd: (json['priceUsd'] as num?)?.toDouble() ?? 0,
+        maxActiveDeals: json['maxActiveDeals'] as int? ?? 1,
+        features: List<String>.from(json['features'] as List? ?? const []),
+        hasAnalytics: json['hasAnalytics'] as bool? ?? false,
+        hasPriorityPlacement: json['hasPriorityPlacement'] as bool? ?? false,
+        hasAdvertising: json['hasAdvertising'] as bool? ?? false,
+        isActive: json['isActive'] as bool? ?? true,
+        sortOrder: json['sortOrder'] as int? ?? 0,
+      );
 
   final String id;
   final String name;
@@ -19,6 +38,20 @@ class SubscriptionPlan {
   final bool hasAnalytics;
   final bool hasPriorityPlacement;
   final bool hasAdvertising;
+  final bool isActive;
+  final int sortOrder;
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'priceUsd': priceUsd,
+        'maxActiveDeals': maxActiveDeals,
+        'features': features,
+        'hasAnalytics': hasAnalytics,
+        'hasPriorityPlacement': hasPriorityPlacement,
+        'hasAdvertising': hasAdvertising,
+        'isActive': isActive,
+        'sortOrder': sortOrder,
+      };
 }
 
 class SubscriptionPlans {
@@ -27,6 +60,7 @@ class SubscriptionPlans {
     name: 'Starter',
     priceUsd: 29,
     maxActiveDeals: 3,
+    sortOrder: 0,
     features: [
       'Up to 3 active deals',
       'Basic business profile',
@@ -42,6 +76,7 @@ class SubscriptionPlans {
     name: 'Growth',
     priceUsd: 79,
     maxActiveDeals: 10,
+    sortOrder: 1,
     features: [
       'Up to 10 active deals',
       'Enhanced visibility',
@@ -58,6 +93,7 @@ class SubscriptionPlans {
     name: 'Premium',
     priceUsd: 149,
     maxActiveDeals: 25,
+    sortOrder: 2,
     features: [
       'Up to 25 active deals',
       'Priority placement',

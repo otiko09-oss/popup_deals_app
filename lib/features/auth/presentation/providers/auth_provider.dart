@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/services/auth_service.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../data/models/app_user.dart';
 
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
@@ -94,6 +95,7 @@ class AuthNotifier extends StateNotifier<AsyncValue<AppUser?>> {
           .collection('users')
           .doc(user.uid)
           .set(user.toJson());
+      await NotificationService().registerDevice(user.uid);
 
       return user;
     });
@@ -110,7 +112,9 @@ class AuthNotifier extends StateNotifier<AsyncValue<AppUser?>> {
         email: email,
         password: password,
       );
-      return _fetchOrCreateProfile(credential.user!);
+      final appUser = await _fetchOrCreateProfile(credential.user!);
+      await NotificationService().registerDevice(appUser.uid);
+      return appUser;
     });
   }
 
@@ -144,12 +148,15 @@ class AuthNotifier extends StateNotifier<AsyncValue<AppUser?>> {
           .collection('users')
           .doc(user.uid)
           .set(appUser.toJson());
+      await NotificationService().registerDevice(user.uid);
 
       return appUser;
     });
   }
 
   Future<void> logout() async {
+    final userId = _authService.currentUser?.uid;
+    if (userId != null) await NotificationService().unregisterDevice(userId);
     await _authService.signOut();
     state = const AsyncValue.data(null);
   }

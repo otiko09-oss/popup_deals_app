@@ -70,36 +70,17 @@ class OrderCreationNotifier extends StateNotifier<OrderCreationState> {
     state = state.copyWith(isLoading: true);
 
     try {
-      final orderId = await _orderService.createOrder(
-        userId: userId,
+      final reservation = await _redemptionService.createReservation(
         dealId: dealId,
-        businessId: businessId,
-        dealTitle: dealTitle,
-        dealPrice: dealPrice,
-        dealImage: dealImage,
-        userName: userName,
-        userPhone: userPhone,
-        businessName: businessName,
-        businessLatitude: businessLatitude,
-        businessLongitude: businessLongitude,
         notes: notes,
         quantity: quantity,
-      );
-
-      final redemption = await _redemptionService.createRedemption(
-        orderId: orderId,
-        dealId: dealId,
-        userId: userId,
-        businessId: businessId,
-        dealTitle: dealTitle,
-        businessName: businessName,
       );
 
       state = state.copyWith(
         isLoading: false,
         successMessage: 'Deal claimed! Show your QR code at the business.',
-        createdOrderId: orderId,
-        createdRedemption: redemption,
+        createdOrderId: reservation.orderId,
+        createdRedemption: reservation.redemption,
       );
     } catch (e) {
       state = state.copyWith(

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/subscription_plans.dart';
+import '../../../../core/providers/plans_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../data/models/business_subscription.dart';
 import '../../data/services/subscription_service.dart';
@@ -24,6 +25,8 @@ class SubscriptionPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final subscriptionAsync =
         ref.watch(businessSubscriptionProvider(businessId));
+    final plans = ref.watch(activePlansProvider).asData?.value ??
+        SubscriptionPlans.all;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Business Subscription')),
@@ -41,7 +44,7 @@ class SubscriptionPage extends ConsumerWidget {
               style: Theme.of(context).textTheme.bodyLarge,
             ),
             const SizedBox(height: 24),
-            for (final plan in SubscriptionPlans.all)
+            for (final plan in plans)
               _PlanCard(
                 plan: plan,
                 isCurrent: current?.planId == plan.id && current!.status == 'active',

@@ -148,11 +148,7 @@ class ProfilePage extends ConsumerWidget {
                         icon: Icons.notifications_outlined,
                         title: 'Notifications',
                         subtitle: 'Manage your app alerts',
-                        onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text(
-                                  'Notification settings will be added soon.')),
-                        ),
+                        onTap: () => context.push(AppRoutes.settings),
                       ),
                       _ProfileMenuItem(
                         icon: Icons.tune_outlined,

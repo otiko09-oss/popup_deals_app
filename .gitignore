@@ -12,6 +12,8 @@ key.properties
 # Cloud Functions (Node.js backend)
 functions/node_modules/
 functions/.env
+functions/.env.*
+!functions/.env.example
 functions/lib/
 firebase-debug.log
 firebase-debug.*.log
@@ -20,3 +22,4 @@ firebase-debug.*.log
 # Firebase client config (contains project keys — keep out of git, use .example as template)
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
+android/local.properties

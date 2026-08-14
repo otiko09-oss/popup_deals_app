@@ -110,14 +110,26 @@ service cloud.firestore {
     match /deals/{dealId} {
       allow read: if true;
       allow create: if isSignedIn() &&
+        request.resource.data.id == dealId &&
         request.resource.data.restaurantId != null &&
         canActFor(request.resource.data.restaurantId) &&
         isApprovedBusiness(request.resource.data.restaurantId) &&
-        request.resource.data.moderationStatus == 'pending';
+        request.resource.data.moderationStatus == 'pending' &&
+        request.resource.data.isActive == false &&
+        request.resource.data.redeemed == 0 &&
+        request.resource.data.likes == 0;
       allow update: if (isSignedIn() &&
         canActFor(resource.data.restaurantId) &&
-        !('moderationStatus' in request.resource.data.diff(resource.data).affectedKeys()) &&
-        !('isActive' in request.resource.data.diff(resource.data).affectedKeys())
+        request.resource.data.restaurantId == resource.data.restaurantId &&
+        request.resource.data.id == resource.data.id &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.redeemed == resource.data.redeemed &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'title', 'description', 'imageUrl', 'originalPrice', 'discountedPrice',
+          'discountPercentage', 'category', 'restaurant', 'startTime', 'endTime',
+          'expiresAt', 'tags', 'latitude', 'longitude', 'restaurantPhoneNumber',
+          'restaurantAddress', 'isActive'
+        ])
       ) || isAdmin();
       allow delete: if isAdmin() ||
         (isSignedIn() && isOwner(resource.data.restaurantId));
@@ -128,14 +140,11 @@ service cloud.firestore {
         (resource.data.userId == request.auth.uid ||
          canActFor(resource.data.businessId) ||
          isAdmin());
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow create: if isAdmin();
       // The customer can update their own order (e.g. cancel); the
       // business or its staff can update it too (e.g. mark completed on
       // redemption) — but neither side can reassign who it belongs to.
-      allow update: if isSignedIn() &&
-        (resource.data.userId == request.auth.uid || canActFor(resource.data.businessId)) &&
-        !('userId' in request.resource.data.diff(resource.data).affectedKeys()) &&
-        !('businessId' in request.resource.data.diff(resource.data).affectedKeys());
+      allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 
@@ -144,16 +153,11 @@ service cloud.firestore {
         (resource.data.userId == request.auth.uid ||
          canActFor(resource.data.businessId) ||
          isAdmin());
-      allow create: if isSignedIn();
+      allow create: if isAdmin();
       // Only the business (owner or active staff) performing the scan may
       // update a redemption, and only to flip its status/redeemedAt —
       // every identifying field is locked after creation.
-      allow update: if isSignedIn() &&
-        canActFor(resource.data.businessId) &&
-        !('userId' in request.resource.data.diff(resource.data).affectedKeys()) &&
-        !('businessId' in request.resource.data.diff(resource.data).affectedKeys()) &&
-        !('dealId' in request.resource.data.diff(resource.data).affectedKeys()) &&
-        !('orderId' in request.resource.data.diff(resource.data).affectedKeys());
+      allow update: if isAdmin();
       allow delete: if false;
     }
 
@@ -166,13 +170,20 @@ service cloud.firestore {
       // written only by the Cloud Functions Stripe webhook (Admin SDK).
       allow create: if isOwner(businessId) &&
         request.resource.data.status == 'trial' &&
-        request.resource.data.businessId == businessId;
+        request.resource.data.businessId == businessId &&
+        request.resource.data.planId == 'starter';
       allow update: if isOwner(businessId) &&
         resource.data.status == 'trial' &&
         request.resource.data.status == 'cancelled' &&
         request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['status', 'expiresAt']);
       allow delete: if false;
+    }
+
+    // Optional, admin-managed product catalogue used by the subscription UI.
+    match /plans/{planId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
     }
 
     match /{document=**} {

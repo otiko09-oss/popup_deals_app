@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:popup_deals_app/core/providers/locale_provider.dart';
 import 'package:popup_deals_app/core/providers/notification_provider.dart';
+import 'package:popup_deals_app/features/auth/presentation/providers/auth_provider.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -40,8 +41,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             settings.authorizationStatus == AuthorizationStatus.authorized;
       });
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        final token = await service.getToken();
-        if (token != null && mounted) {
+        final user = ref.read(authProvider).asData?.value;
+        if (user != null) await service.registerDevice(user.uid);
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Notifications enabled')),
           );

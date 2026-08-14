@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:logger/logger.dart';
 
 import 'config/firebase/firebase_init.dart';
@@ -14,8 +15,15 @@ import 'core/services/service_locator.dart';
 import 'core/theme/app_theme.dart';
 import 'l10n/app_localizations.dart';
 
+/// Required for notifications received while the application is terminated.
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await FirebaseInitializer.initialize();
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   FlutterError.onError = (details) {
     Logger().e('FlutterError: ${details.exception}',

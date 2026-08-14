@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:logger/logger.dart';
 import 'package:popup_deals_app/features/orders/data/models/order_model.dart';
 
@@ -7,9 +8,12 @@ class OrderService {
   OrderService({
     FirebaseFirestore? firestore,
     Logger? logger,
+    FirebaseFunctions? functions,
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _functions = functions ?? FirebaseFunctions.instance,
         _logger = logger ?? Logger();
   final FirebaseFirestore _firestore;
+  final FirebaseFunctions _functions;
   final Logger _logger;
 
   /// Create a new order
@@ -80,32 +84,13 @@ class OrderService {
     try {
       _logger.i('Updating order status: $orderId to $newStatus');
 
-      final now = DateTime.now();
-      final updateData = {
-        'status': newStatus.name,
-        'updatedAt': now.toIso8601String(),
-      };
-
-      // Set the appropriate timestamp based on status
-      switch (newStatus) {
-        case OrderStatus.accepted:
-          updateData['acceptedAt'] = now.toIso8601String();
-          break;
-        case OrderStatus.ready:
-          updateData['readyAt'] = now.toIso8601String();
-          break;
-        case OrderStatus.completed:
-          updateData['completedAt'] = now.toIso8601String();
-          break;
-        case OrderStatus.cancelled:
-          // No special timestamp for cancelled
-          break;
-        case OrderStatus.pending:
-          // No special timestamp for pending
-          break;
+      if (newStatus == OrderStatus.pending) {
+        throw ArgumentError('An order cannot return to pending.');
       }
-
-      await _firestore.collection('orders').doc(orderId).update(updateData);
+      await _functions.httpsCallable('updateOrderStatus').call({
+        'orderId': orderId,
+        'status': newStatus.name,
+      });
 
       _logger.i('Order status updated successfully: $orderId');
     } on Object catch (e) {

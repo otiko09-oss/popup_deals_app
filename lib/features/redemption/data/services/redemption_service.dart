@@ -1,58 +1,40 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:logger/logger.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 import '../models/redemption_model.dart';
 
 class RedemptionService {
   RedemptionService({
     FirebaseFirestore? firestore,
-    Logger? logger,
+    FirebaseFunctions? functions,
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _logger = logger ?? Logger();
+        _functions = functions ?? FirebaseFunctions.instance;
 
   final FirebaseFirestore _firestore;
-  final Logger _logger;
+  final FirebaseFunctions _functions;
 
-  /// Creates a QR redemption record when a customer claims a deal.
-  Future<RedemptionModel> createRedemption({
-    required String orderId,
+  /// Claims a deal through the backend, which snapshots trusted deal and
+  /// business data and creates the order + QR record atomically.
+  Future<ReservationResult> createReservation({
     required String dealId,
-    required String userId,
-    required String businessId,
-    required String dealTitle,
-    required String businessName,
-    Duration validity = const Duration(hours: 24),
+    int quantity = 1,
+    String? notes,
   }) async {
-    final redemptionId = _firestore.collection('redemptions').doc().id;
-    final qrPayload = 'popupdeals://redeem/$redemptionId';
-    final now = DateTime.now();
-
-    final redemption = RedemptionModel(
-      id: redemptionId,
-      orderId: orderId,
-      dealId: dealId,
-      userId: userId,
-      businessId: businessId,
-      qrPayload: qrPayload,
-      status: RedemptionStatus.pending,
-      createdAt: now,
-      expiresAt: now.add(validity),
-      dealTitle: dealTitle,
-      businessName: businessName,
-    );
-
-    await _firestore
-        .collection('redemptions')
-        .doc(redemptionId)
-        .set(redemption.toJson());
-
-    await _firestore.collection('orders').doc(orderId).update({
-      'redemptionId': redemptionId,
-      'qrPayload': qrPayload,
+    final result = await _functions.httpsCallable('createReservation').call<
+        Map<String, dynamic>>({
+      'dealId': dealId,
+      'quantity': quantity,
+      if (notes != null) 'notes': notes,
     });
-
-    _logger.i('Redemption created: $redemptionId');
-    return redemption;
+    final orderId = result.data['orderId'] as String?;
+    final redemption = result.data['redemption'];
+    if (orderId == null || redemption is! Map) {
+      throw StateError('Reservation response was incomplete.');
+    }
+    return ReservationResult(
+      orderId: orderId,
+      redemption: RedemptionModel.fromJson(Map<String, dynamic>.from(redemption)),
+    );
   }
 
   Future<RedemptionModel?> getRedemption(String redemptionId) async {
@@ -67,54 +49,11 @@ class RedemptionService {
     required String redemptionId,
     required String businessId,
   }) async {
-    final docRef = _firestore.collection('redemptions').doc(redemptionId);
-
-    return _firestore.runTransaction((transaction) async {
-      final snapshot = await transaction.get(docRef);
-      if (!snapshot.exists || snapshot.data() == null) {
-        throw Exception('Redemption not found');
-      }
-
-      final redemption = RedemptionModel.fromJson(snapshot.data()!);
-
-      if (redemption.businessId != businessId) {
-        throw Exception('This deal belongs to another business');
-      }
-      if (redemption.status == RedemptionStatus.redeemed) {
-        throw Exception('Already redeemed');
-      }
-      if (redemption.status == RedemptionStatus.expired ||
-          DateTime.now().isAfter(redemption.expiresAt)) {
-        transaction.update(docRef, {'status': RedemptionStatus.expired.name});
-        throw Exception('QR code has expired');
-      }
-
-      final now = DateTime.now();
-      transaction.update(docRef, {
-        'status': RedemptionStatus.redeemed.name,
-        'redeemedAt': now.toIso8601String(),
-      });
-
-      final dealRef = _firestore.collection('deals').doc(redemption.dealId);
-      transaction.update(dealRef, {
-        'redeemed': FieldValue.increment(1),
-      });
-
-      if (redemption.orderId.isNotEmpty) {
-        final orderRef =
-            _firestore.collection('orders').doc(redemption.orderId);
-        transaction.update(orderRef, {
-          'status': 'completed',
-          'completedAt': now.toIso8601String(),
-          'updatedAt': now.toIso8601String(),
-        });
-      }
-
-      return redemption.copyWith(
-        status: RedemptionStatus.redeemed,
-        redeemedAt: now,
-      );
-    });
+    final result = await _functions.httpsCallable('redeemReservation').call<
+        Map<String, dynamic>>({'redemptionId': redemptionId});
+    final redemption = result.data['redemption'];
+    if (redemption is! Map) throw StateError('Redemption response was incomplete.');
+    return RedemptionModel.fromJson(Map<String, dynamic>.from(redemption));
   }
 
   Stream<List<RedemptionModel>> getUserRedemptionsStream(String userId) =>
@@ -128,25 +67,10 @@ class RedemptionService {
               .toList());
 }
 
-extension _RedemptionCopy on RedemptionModel {
-  RedemptionModel copyWith({
-    RedemptionStatus? status,
-    DateTime? redeemedAt,
-  }) =>
-      RedemptionModel(
-        id: id,
-        orderId: orderId,
-        dealId: dealId,
-        userId: userId,
-        businessId: businessId,
-        qrPayload: qrPayload,
-        status: status ?? this.status,
-        createdAt: createdAt,
-        expiresAt: expiresAt,
-        redeemedAt: redeemedAt ?? this.redeemedAt,
-        dealTitle: dealTitle,
-        businessName: businessName,
-      );
+class ReservationResult {
+  const ReservationResult({required this.orderId, required this.redemption});
+  final String orderId;
+  final RedemptionModel redemption;
 }
 
 /// Parses QR payload from scanner or deep link.

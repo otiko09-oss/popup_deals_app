@@ -5,14 +5,41 @@ class MarketplaceCategory {
     required this.labelEn,
     required this.labelKa,
     required this.emoji,
+    this.isActive = true,
+    this.sortOrder = 0,
   });
+
+  /// Reads a category document from the `categories` Firestore collection
+  /// — see CategoriesRepository. [docId] is used as the category id.
+  factory MarketplaceCategory.fromJson(
+    String docId,
+    Map<String, dynamic> json,
+  ) =>
+      MarketplaceCategory(
+        id: docId,
+        labelEn: json['labelEn'] as String? ?? docId,
+        labelKa: json['labelKa'] as String? ?? docId,
+        emoji: json['emoji'] as String? ?? '🏷️',
+        isActive: json['isActive'] as bool? ?? true,
+        sortOrder: json['sortOrder'] as int? ?? 0,
+      );
 
   final String id;
   final String labelEn;
   final String labelKa;
   final String emoji;
+  final bool isActive;
+  final int sortOrder;
 
   String label(String locale) => locale == 'ka' ? labelKa : labelEn;
+
+  Map<String, dynamic> toJson() => {
+        'labelEn': labelEn,
+        'labelKa': labelKa,
+        'emoji': emoji,
+        'isActive': isActive,
+        'sortOrder': sortOrder,
+      };
 }
 
 class MarketplaceCategories {

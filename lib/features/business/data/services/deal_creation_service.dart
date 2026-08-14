@@ -97,7 +97,9 @@ class DealCreationService {
         'endTime': form.endTime.toIso8601String(),
         'expiresAt': form.endTime.toIso8601String(),
         'createdAt': DateTime.now().toIso8601String(),
-        'isActive': true,
+        // New deals require moderation before appearing in the public feed.
+        'isActive': false,
+        'moderationStatus': 'pending',
         'likes': 0,
         'redeemed': 0,
         'tags': form.tags,
