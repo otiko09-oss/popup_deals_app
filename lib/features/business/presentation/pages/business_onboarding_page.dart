@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../config/routes/app_routes.dart';
 import '../../../../core/constants/marketplace_categories.dart';
+import '../../../../core/providers/categories_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../subscription/data/services/subscription_service.dart';
@@ -139,7 +140,8 @@ class _BusinessOnboardingPageState
                   labelText: 'Category',
                   prefixIcon: Icon(Icons.category),
                 ),
-                items: MarketplaceCategories.all
+                items: (ref.watch(activeCategoriesProvider).asData?.value ??
+                        MarketplaceCategories.all)
                     .map(
                       (c) => DropdownMenuItem(
                         value: c.id,

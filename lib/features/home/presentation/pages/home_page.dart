@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:popup_deals_app/config/routes/app_routes.dart';
 import 'package:popup_deals_app/core/constants/marketplace_categories.dart';
+import 'package:popup_deals_app/core/providers/categories_provider.dart';
 import 'package:popup_deals_app/core/providers/locale_provider.dart';
 import 'package:popup_deals_app/core/services/haptic_service.dart';
 import 'package:popup_deals_app/core/theme/app_theme.dart';
@@ -87,6 +88,8 @@ class _MarketplaceContent extends ConsumerWidget {
     final nearby = ref.watch(nearbyDealsProvider);
     final trending = ref.watch(trendingDealsProvider);
     final newest = ref.watch(newDealsProvider);
+    final categories = ref.watch(activeCategoriesProvider).asData?.value ??
+        MarketplaceCategories.all;
     final theme = Theme.of(context);
 
     return Column(
@@ -105,7 +108,7 @@ class _MarketplaceContent extends ConsumerWidget {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             children: [
-              for (final cat in MarketplaceCategories.all)
+              for (final cat in categories)
                 _CategoryChip(
                   emoji: cat.emoji,
                   label: cat.label(locale),
@@ -145,7 +148,8 @@ class _MarketplaceContent extends ConsumerWidget {
                   const SizedBox(height: 12),
                   Text(
                     'No deals yet — check back soon!',
-                    style: theme.textTheme.bodyLarge?.copyWith(color: Colors.grey),
+                    style:
+                        theme.textTheme.bodyLarge?.copyWith(color: Colors.grey),
                   ),
                 ],
               ),
@@ -280,7 +284,8 @@ class _HorizontalDealCard extends StatelessWidget {
         margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+          border:
+              Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -403,7 +408,8 @@ class _ErrorState extends StatelessWidget {
           padding: const EdgeInsets.all(32),
           child: Column(
             children: [
-              const Icon(Icons.cloud_off_outlined, size: 64, color: Colors.grey),
+              const Icon(Icons.cloud_off_outlined,
+                  size: 64, color: Colors.grey),
               const SizedBox(height: 16),
               const Text('Failed to load deals'),
               FilledButton(onPressed: onRetry, child: const Text('Retry')),

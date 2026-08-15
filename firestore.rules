@@ -140,11 +140,14 @@ service cloud.firestore {
         (resource.data.userId == request.auth.uid ||
          canActFor(resource.data.businessId) ||
          isAdmin());
-      allow create: if isAdmin();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       // The customer can update their own order (e.g. cancel); the
       // business or its staff can update it too (e.g. mark completed on
       // redemption) — but neither side can reassign who it belongs to.
-      allow update: if isAdmin();
+      allow update: if isSignedIn() &&
+        (resource.data.userId == request.auth.uid || canActFor(resource.data.businessId)) &&
+        !('userId' in request.resource.data.diff(resource.data).affectedKeys()) &&
+        !('businessId' in request.resource.data.diff(resource.data).affectedKeys());
       allow delete: if isAdmin();
     }
 
@@ -153,11 +156,16 @@ service cloud.firestore {
         (resource.data.userId == request.auth.uid ||
          canActFor(resource.data.businessId) ||
          isAdmin());
-      allow create: if isAdmin();
+      allow create: if isSignedIn();
       // Only the business (owner or active staff) performing the scan may
       // update a redemption, and only to flip its status/redeemedAt —
       // every identifying field is locked after creation.
-      allow update: if isAdmin();
+      allow update: if isSignedIn() &&
+        canActFor(resource.data.businessId) &&
+        !('userId' in request.resource.data.diff(resource.data).affectedKeys()) &&
+        !('businessId' in request.resource.data.diff(resource.data).affectedKeys()) &&
+        !('dealId' in request.resource.data.diff(resource.data).affectedKeys()) &&
+        !('orderId' in request.resource.data.diff(resource.data).affectedKeys());
       allow delete: if false;
     }
 
@@ -182,6 +190,12 @@ service cloud.firestore {
 
     // Optional, admin-managed product catalogue used by the subscription UI.
     match /plans/{planId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Optional, admin-managed marketplace categories.
+    match /categories/{categoryId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
     }

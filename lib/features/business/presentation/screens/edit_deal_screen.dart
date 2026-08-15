@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../../core/providers/categories_provider.dart';
 import '../../data/models/deal_creation_form.dart';
 import '../providers/business_provider.dart';
 import '../widgets/category_and_tags.dart';
@@ -284,6 +285,12 @@ class _EditDealScreenState extends ConsumerState<EditDealScreen> {
                     const SizedBox(height: 24),
                     CategorySelector(
                       selectedCategory: _selectedCategory,
+                      categories: ref
+                          .watch(activeCategoriesProvider)
+                          .asData
+                          ?.value
+                          .map((c) => c.id)
+                          .toList(),
                       onCategorySelected: (category) {
                         setState(() => _selectedCategory = category);
                       },
