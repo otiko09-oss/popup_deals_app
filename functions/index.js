@@ -252,9 +252,11 @@ exports.updateOrderStatus = functions.https.onCall(async (data, context) => {
     const update = { status, updatedAt: timestamp };
     if (status === "accepted") update.acceptedAt = timestamp;
     if (status === "ready") update.readyAt = timestamp;
-    if (status === "completed") {
-      update.completedAt = timestamp;
-      // A manually completed order can no longer be redeemed by its QR code.
+    if (status === "completed" || status === "cancelled") {
+      if (status === "completed") update.completedAt = timestamp;
+      // A manually completed or cancelled order can no longer be redeemed
+      // by its QR code — otherwise a customer could still show a stale QR
+      // for a cancelled order and get it scanned as a valid redemption.
       if (typeof order.redemptionId === "string" && order.redemptionId) {
         tx.update(db.collection("redemptions").doc(order.redemptionId), { status: "cancelled" });
       }

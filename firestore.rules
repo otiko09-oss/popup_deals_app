@@ -140,7 +140,11 @@ service cloud.firestore {
         (resource.data.userId == request.auth.uid ||
          canActFor(resource.data.businessId) ||
          isAdmin());
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // Orders are only ever created server-side by the createReservation
+      // Cloud Function (Admin SDK, which bypasses these rules) together with
+      // their matching redemption record. Clients never create orders
+      // directly, so this stays locked.
+      allow create: if false;
       // The customer can update their own order (e.g. cancel); the
       // business or its staff can update it too (e.g. mark completed on
       // redemption) — but neither side can reassign who it belongs to.
@@ -156,7 +160,12 @@ service cloud.firestore {
         (resource.data.userId == request.auth.uid ||
          canActFor(resource.data.businessId) ||
          isAdmin());
-      allow create: if isSignedIn();
+      // Redemptions are only ever created server-side by the
+      // createReservation Cloud Function (Admin SDK, which bypasses these
+      // rules), atomically with their order. A client-writable create here
+      // would let any signed-in user forge a redemption record (e.g. one
+      // already marked "completed") without ever placing a real order.
+      allow create: if false;
       // Only the business (owner or active staff) performing the scan may
       // update a redemption, and only to flip its status/redeemedAt —
       // every identifying field is locked after creation.
