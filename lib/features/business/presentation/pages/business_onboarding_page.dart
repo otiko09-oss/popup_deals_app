@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/routes/app_routes.dart';
@@ -46,6 +47,21 @@ class _BusinessOnboardingPageState
     setState(() => _saving = true);
 
     try {
+      // Same best-effort pattern as add_deal_screen: use the device's
+      // current position for the business's map location, but never block
+      // onboarding if permission is denied or location is unavailable.
+      double latitude = 0.0;
+      double longitude = 0.0;
+      try {
+        final position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+        latitude = position.latitude;
+        longitude = position.longitude;
+      } catch (_) {
+        // Business can still be created; location can be corrected later.
+      }
+
       final now = DateTime.now();
       await FirebaseFirestore.instance
           .collection('businesses')
@@ -58,8 +74,8 @@ class _BusinessOnboardingPageState
         'description': _descriptionController.text.trim(),
         'address': _addressController.text.trim(),
         'category': _category,
-        'latitude': 0.0,
-        'longitude': 0.0,
+        'latitude': latitude,
+        'longitude': longitude,
         'status': 'pending',
         'createdAt': now.toIso8601String(),
         'updatedAt': now.toIso8601String(),

@@ -76,5 +76,16 @@
 	<string>Popup Deals uses your photo library so businesses can upload deal images.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Popup Deals may save images you choose to share.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- REVERSED_CLIENT_ID from GoogleService-Info.plist — required
+				     for google_sign_in to complete the OAuth redirect on iOS. -->
+				<string>com.googleusercontent.apps.377491166081-cohbkem49lurt6p2t7udjgtdjpio0eeo</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

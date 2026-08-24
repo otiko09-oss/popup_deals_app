@@ -1,0 +1,8 @@
+{
+  "name": "popup-deals-scripts",
+  "description": "One-off admin scripts for Popup Deals. Not deployed anywhere.",
+  "private": true,
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}

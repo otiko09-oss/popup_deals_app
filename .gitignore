@@ -23,3 +23,7 @@ firebase-debug.*.log
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 android/local.properties
+
+# Admin bootstrap script (scripts/set-admin.js) — never commit this key
+scripts/serviceAccountKey.json
+scripts/node_modules/

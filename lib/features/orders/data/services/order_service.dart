@@ -16,63 +16,13 @@ class OrderService {
   final FirebaseFunctions _functions;
   final Logger _logger;
 
-  /// Create a new order
-  ///
-  /// Returns the order ID
-  /// Throws exception if creation fails
-  Future<String> createOrder({
-    required String userId,
-    required String dealId,
-    required String businessId,
-    required String dealTitle,
-    required double dealPrice,
-    required String dealImage,
-    required String userName,
-    required String userPhone,
-    required String businessName,
-    required double businessLatitude,
-    required double businessLongitude,
-    String? notes,
-    int quantity = 1,
-  }) async {
-    try {
-      _logger.i('Creating order for deal: $dealId by user: $userId');
-
-      final orderId = _firestore.collection('orders').doc().id;
-      final now = DateTime.now();
-
-      final orderData = OrderModel(
-        id: orderId,
-        userId: userId,
-        dealId: dealId,
-        businessId: businessId,
-        status: OrderStatus.pending,
-        createdAt: now,
-        dealTitle: dealTitle,
-        dealPrice: dealPrice,
-        dealImage: dealImage,
-        userName: userName,
-        userPhone: userPhone,
-        businessName: businessName,
-        businessLatitude: businessLatitude,
-        businessLongitude: businessLongitude,
-        notes: notes,
-        quantity: quantity,
-      );
-
-      await _firestore
-          .collection('orders')
-          .doc(orderId)
-          .set(orderData.toJson());
-
-      _logger.i('Order created successfully: $orderId');
-
-      return orderId;
-    } on Object catch (e) {
-      _logger.e('Error creating order: $e');
-      rethrow;
-    }
-  }
+  // NOTE: order creation intentionally has no client-side method here.
+  // Orders (and their linked QR redemption) are only ever created
+  // server-side by the createReservation Cloud Function — see
+  // RedemptionService.createReservation — which snapshots trusted deal and
+  // business data and writes both atomically. firestore.rules also blocks
+  // any direct client write to `orders`, so a client-side create here would
+  // fail with permission-denied even if called.
 
   /// Update order status
   ///
