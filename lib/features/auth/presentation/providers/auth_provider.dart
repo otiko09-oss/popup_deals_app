@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -95,7 +97,9 @@ class AuthNotifier extends StateNotifier<AsyncValue<AppUser?>> {
           .collection('users')
           .doc(user.uid)
           .set(user.toJson());
-      await NotificationService().registerDevice(user.uid);
+      // Fire-and-forget: push-token registration must never block or
+      // appear to hang the sign-up flow. See NotificationService.registerDevice.
+      unawaited(NotificationService().registerDevice(user.uid));
 
       return user;
     });
@@ -113,7 +117,9 @@ class AuthNotifier extends StateNotifier<AsyncValue<AppUser?>> {
         password: password,
       );
       final appUser = await _fetchOrCreateProfile(credential.user!);
-      await NotificationService().registerDevice(appUser.uid);
+      // Fire-and-forget — see registerDevice() doc comment: this must
+      // never gate login completing.
+      unawaited(NotificationService().registerDevice(appUser.uid));
       return appUser;
     });
   }
@@ -148,7 +154,8 @@ class AuthNotifier extends StateNotifier<AsyncValue<AppUser?>> {
           .collection('users')
           .doc(user.uid)
           .set(appUser.toJson());
-      await NotificationService().registerDevice(user.uid);
+      // Fire-and-forget — see registerDevice() doc comment.
+      unawaited(NotificationService().registerDevice(user.uid));
 
       return appUser;
     });

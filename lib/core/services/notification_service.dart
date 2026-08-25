@@ -65,14 +65,26 @@ class NotificationService {
   /// Requests permission where needed and keeps this device's FCM token on
   /// the user document. The backend can target these tokens for order/deal
   /// updates; token refreshes are handled automatically.
+  ///
+  /// Bounded with a timeout and never lets an exception escape: this runs
+  /// fire-and-forget from the login/register flow (see auth_provider.dart),
+  /// so a slow or failing notifications setup must never block — or look
+  /// like it's hanging — the actual sign-in.
   Future<void> registerDevice(String userId) async {
-    final settings = await requestPermission();
-    if (settings.authorizationStatus == AuthorizationStatus.denied) return;
-    await _saveToken(userId, await getToken());
-    await _tokenSubscription?.cancel();
-    _tokenSubscription = _messaging.onTokenRefresh.listen(
-      (token) => _saveToken(userId, token),
-    );
+    try {
+      final settings =
+          await requestPermission().timeout(const Duration(seconds: 10));
+      if (settings.authorizationStatus == AuthorizationStatus.denied) return;
+      final token = await getToken().timeout(const Duration(seconds: 10));
+      await _saveToken(userId, token);
+      await _tokenSubscription?.cancel();
+      _tokenSubscription = _messaging.onTokenRefresh.listen(
+        (token) => _saveToken(userId, token),
+      );
+    } on Object {
+      // Notifications are a nice-to-have; never let a failure here be
+      // mistaken for (or actually cause) a stuck login.
+    }
   }
 
   Future<void> unregisterDevice(String userId) async {
