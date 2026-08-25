@@ -54,12 +54,35 @@ const _businessOnlyRoutes = {
 };
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
+  // IMPORTANT: this used to be `final authState = ref.watch(authProvider);`
+  // directly inside this Provider<GoRouter> builder. That meant every single
+  // authProvider state change (loading -> data, loading -> error, etc. — so
+  // every login/register/logout attempt) rebuilt this whole provider and
+  // therefore constructed a BRAND NEW GoRouter object. Swapping in a new
+  // GoRouter resets it to `initialLocation: AppRoutes.splash` and gives
+  // SplashScreen a fresh widget instance with fresh ref.listen()s — which
+  // only fire on *future* changes, not the state change that just already
+  // happened. Net effect: tap "Sign In", the auth state settles (even to an
+  // error) before the new SplashScreen's listeners are attached, and the
+  // app is left sitting on a spinning splash screen forever, regardless of
+  // whether sign-in actually succeeded or failed.
+  //
+  // Fix: build the GoRouter exactly once and use GoRouter's own
+  // `refreshListenable` to tell it "re-run redirect", instead of Riverpod
+  // recreating the router. `redirect` below reads the current auth state
+  // fresh (ref.read) each time it's invoked rather than closing over a
+  // value captured at build time.
+  final notifier = _AuthRefreshNotifier(ref);
+  ref.onDispose(notifier.dispose);
 
   return GoRouter(
     initialLocation: AppRoutes.splash,
+    refreshListenable: notifier,
     redirect: (context, state) {
       final path = state.matchedLocation;
+      // Read fresh each call — this closure is created once now, so it
+      // must not close over a stale authState from build time.
+      final authState = ref.read(authProvider);
 
       // Still resolving the initial auth session — let the splash screen
       // show instead of bouncing the user around while we don't know yet.
@@ -280,3 +303,15 @@ final routerProvider = Provider<GoRouter>((ref) {
     ),
   );
 });
+
+/// Bridges Riverpod's authProvider to GoRouter's `refreshListenable`.
+///
+/// This lets GoRouter re-run its `redirect` callback whenever auth state
+/// changes, WITHOUT Riverpod tearing down and rebuilding the GoRouter
+/// instance itself (see the long comment on routerProvider above for why
+/// that was causing sign-in to appear to hang forever on the splash screen).
+class _AuthRefreshNotifier extends ChangeNotifier {
+  _AuthRefreshNotifier(Ref ref) {
+    ref.listen<AsyncValue>(authProvider, (_, __) => notifyListeners());
+  }
+}
