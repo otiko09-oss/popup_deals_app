@@ -158,6 +158,23 @@ class ProfilePage extends ConsumerWidget {
                       ),
                       const SizedBox(height: 16),
 
+                      // Admin Section — only rendered for isAdmin users.
+                      // AdminDashboardPage/AppRoutes.admin already existed
+                      // and is already gated by the router's isAdmin check;
+                      // this was the missing piece — nothing in the app UI
+                      // linked to it, so an admin had no way to reach their
+                      // own panel short of typing the URL/deep link by hand.
+                      if (appUser?.isAdmin ?? false) ...[
+                        const _SectionHeader(title: 'Admin'),
+                        _ProfileMenuItem(
+                          icon: Icons.admin_panel_settings_outlined,
+                          title: 'Admin Panel',
+                          subtitle: 'Manage users, businesses and deals',
+                          onTap: () => context.push(AppRoutes.admin),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
                       // Support Section
                       const _SectionHeader(title: 'Support'),
                       _ProfileMenuItem(
