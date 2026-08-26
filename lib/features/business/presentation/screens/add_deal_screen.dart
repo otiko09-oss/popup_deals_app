@@ -143,31 +143,39 @@ class _AddDealScreenState extends ConsumerState<AddDealScreen> {
           restaurantName: restaurantName,
         );
 
-    // Listen for completion
-    ref.listen(dealCreationProvider, (previous, next) {
-      if (next.error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.error!),
-            backgroundColor: Colors.red,
-          ),
-        );
-      } else if (next.successMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.successMessage!),
-            backgroundColor: Colors.green,
-          ),
-        );
+    if (!mounted) return;
 
-        // Clear form after successful creation
-        unawaited(Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) {
-            _clearForm();
-          }
-        }));
-      }
-    });
+    // By the time the await above completes, DealCreationNotifier.createDeal
+    // has already finished updating its own state (error or successMessage)
+    // — so we can just read it directly. The previous version called
+    // ref.listen(dealCreationProvider, ...) here, inside this async button
+    // handler; Riverpod only allows ref.listen inside a widget's build()
+    // method, so every call threw 'ref.listen can only be used within the
+    // build method of a ConsumerWidget' and the success/error SnackBar (and
+    // the post-success form clear) never actually ran.
+    final result = ref.read(dealCreationProvider);
+    if (result.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.error!),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } else if (result.successMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.successMessage!),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // Clear form after successful creation
+      unawaited(Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          _clearForm();
+        }
+      }));
+    }
   }
 
   void _clearForm() {
