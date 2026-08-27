@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -53,6 +54,32 @@ const _businessOnlyRoutes = {
   AppRoutes.manageStaff,
 };
 
+/// Whether the currently signed-in 'restaurant' user has actually completed
+/// business onboarding — i.e. has a businesses/{uid} Firestore doc.
+///
+/// This exists because the redirect logic used to only check
+/// `user.userType == 'restaurant'` and send those accounts straight to the
+/// business dashboard, with nothing checking whether business onboarding
+/// (BusinessOnboardingPage, which is what actually creates the
+/// businesses/{uid} doc) had ever been completed. Anyone who backed out of
+/// or was interrupted during onboarding — including by something as
+/// ordinary as a hot restart — got permanently routed to business screens
+/// with no underlying business record: invisible to admins in the
+/// Businesses tab (nothing to list) and hitting permission-denied on every
+/// deal creation (isApprovedBusiness() has nothing to check), with no way
+/// back to onboarding through normal navigation.
+final businessProfileExistsProvider = StreamProvider<bool?>((ref) {
+  final user = ref.watch(authProvider).asData?.value;
+  if (user == null || user.userType != 'restaurant') {
+    return Stream.value(null); // not a restaurant account — not applicable
+  }
+  return FirebaseFirestore.instance
+      .collection('businesses')
+      .doc(user.uid)
+      .snapshots()
+      .map((snap) => snap.exists);
+});
+
 final routerProvider = Provider<GoRouter>((ref) {
   // IMPORTANT: this used to be `final authState = ref.watch(authProvider);`
   // directly inside this Provider<GoRouter> builder. That meant every single
@@ -101,9 +128,24 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Logged in but sitting on splash/login/register -> send to the
       // right home for their account type.
       if (loggedIn && _publicRoutes.contains(path)) {
-        return user.userType == 'restaurant'
-            ? AppRoutes.businessDeals
-            : AppRoutes.home;
+        if (user.userType == 'restaurant') {
+          final hasBusinessProfile =
+              ref.read(businessProfileExistsProvider).asData?.value;
+          return hasBusinessProfile == false
+              ? AppRoutes.businessOnboarding
+              : AppRoutes.businessDeals;
+        }
+        return AppRoutes.home;
+      }
+
+      // A 'restaurant' account without a businesses/{uid} doc yet (onboarding
+      // never completed) must finish onboarding before reaching any other
+      // business screen — see businessProfileExistsProvider doc comment.
+      if (loggedIn &&
+          user.userType == 'restaurant' &&
+          path != AppRoutes.businessOnboarding &&
+          ref.read(businessProfileExistsProvider).asData?.value == false) {
+        return AppRoutes.businessOnboarding;
       }
 
       // Admin dashboard requires the isAdmin flag specifically.
@@ -313,5 +355,9 @@ final routerProvider = Provider<GoRouter>((ref) {
 class _AuthRefreshNotifier extends ChangeNotifier {
   _AuthRefreshNotifier(Ref ref) {
     ref.listen<AsyncValue>(authProvider, (_, __) => notifyListeners());
+    ref.listen<AsyncValue<bool?>>(
+      businessProfileExistsProvider,
+      (_, __) => notifyListeners(),
+    );
   }
 }
