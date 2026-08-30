@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:popup_deals_app/config/routes/app_routes.dart';
@@ -87,6 +88,45 @@ class ProfilePage extends ConsumerWidget {
                             color: Colors.white.withValues(alpha: 0.85),
                           ),
                         ),
+                        // Account UID + copy button. This is the piece
+                        // ManageStaffPage's own instructions ("visible on
+                        // their Profile page") assumed already existed —
+                        // it didn't, so a business owner had no way to
+                        // actually get a staff member's UID to add them.
+                        if (firebaseUser.uid.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          InkWell(
+                            onTap: () {
+                              Clipboard.setData(
+                                ClipboardData(text: firebaseUser.uid),
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Account ID copied'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'ID: ${firebaseUser.uid}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.white.withValues(alpha: 0.7),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.copy,
+                                  size: 12,
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                         if (appUser != null) ...[
                           const SizedBox(height: 8),
                           Container(
