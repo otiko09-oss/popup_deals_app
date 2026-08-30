@@ -11,6 +11,8 @@ class ProfilePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authAsync = ref.watch(authStateProvider);
     final appUser = ref.watch(authProvider).asData?.value;
+    final isActiveStaff =
+        ref.watch(isActiveBusinessStaffProvider).asData?.value ?? false;
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -171,6 +173,25 @@ class ProfilePage extends ConsumerWidget {
                           title: 'Admin Panel',
                           subtitle: 'Manage users, businesses and deals',
                           onTap: () => context.push(AppRoutes.admin),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // Staff section — for accounts a business owner has
+                      // granted QR-scanning access to via ManageStaffPage.
+                      // AppRoutes.qrScanner and QrScannerEntryPoint already
+                      // correctly resolved which business a staff member
+                      // acts for; the only missing piece was a way to
+                      // actually navigate there, since the button that
+                      // links to it elsewhere lives on an owner-only
+                      // screen staff can never reach.
+                      if (isActiveStaff) ...[
+                        const _SectionHeader(title: 'Staff'),
+                        _ProfileMenuItem(
+                          icon: Icons.qr_code_scanner_outlined,
+                          title: 'Scan QR Code',
+                          subtitle: 'Redeem a customer\'s reservation',
+                          onTap: () => context.push(AppRoutes.qrScanner),
                         ),
                         const SizedBox(height: 16),
                       ],

@@ -154,9 +154,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // Business-only screens: customers get bounced to their home feed.
+      // Exception: qrScanner also supports active staff accounts (they
+      // sign up as ordinary customers, then a business owner grants them
+      // access via ManageStaffPage) — QrScannerEntryPoint itself already
+      // knows how to resolve which business a staff member is acting for
+      // via BusinessStaffService.resolveActingBusinessId(); the redirect
+      // just needs to stop bouncing them away before that code ever runs.
+      // Every other business-only route assumes the signed-in uid IS the
+      // business (they read businesses/{appUser.uid} directly) and isn't
+      // staff-aware, so widening this exception to those routes would
+      // break rather than fix things for staff.
       if (loggedIn &&
           _businessOnlyRoutes.contains(path) &&
-          user.userType != 'restaurant') {
+          user.userType != 'restaurant' &&
+          !(path == AppRoutes.qrScanner &&
+              (ref.read(isActiveBusinessStaffProvider).asData?.value ??
+                  false))) {
         return AppRoutes.home;
       }
 
@@ -357,6 +370,10 @@ class _AuthRefreshNotifier extends ChangeNotifier {
     ref.listen<AsyncValue>(authProvider, (_, __) => notifyListeners());
     ref.listen<AsyncValue<bool?>>(
       businessProfileExistsProvider,
+      (_, __) => notifyListeners(),
+    );
+    ref.listen<AsyncValue<bool>>(
+      isActiveBusinessStaffProvider,
       (_, __) => notifyListeners(),
     );
   }

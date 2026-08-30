@@ -205,3 +205,22 @@ class AuthNotifier extends StateNotifier<AsyncValue<AppUser?>> {
 
 final authProvider = StateNotifierProvider<AuthNotifier, AsyncValue<AppUser?>>(
     (ref) => AuthNotifier(ref.watch(authServiceProvider)));
+
+/// Whether the currently signed-in account is an active staff member of
+/// some business (business_staff/{uid}.isActive == true) — separate from
+/// owning a business (userType == 'restaurant'). Staff sign up as ordinary
+/// customer accounts; a business owner grants them access afterward via
+/// ManageStaffPage / BusinessStaffService.addStaff.
+///
+/// Lives here (not in router_config.dart, where it's also used) so that
+/// both router_config.dart and profile_page.dart can depend on it without
+/// a circular import between the two.
+final isActiveBusinessStaffProvider = StreamProvider<bool>((ref) {
+  final user = ref.watch(authProvider).asData?.value;
+  if (user == null) return Stream.value(false);
+  return FirebaseFirestore.instance
+      .collection('business_staff')
+      .doc(user.uid)
+      .snapshots()
+      .map((snap) => snap.exists && snap.data()?['isActive'] == true);
+});
