@@ -54,6 +54,19 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/businesses/$(businessId)).data.status == 'approved';
     }
 
+    // Defense-in-depth alongside the client-side check in
+    // SubscriptionService.canCreateDeal(): once Stripe's webhook marks a
+    // subscription cancelled/past_due/unpaid (anything other than
+    // 'trial'/'active'), block new deal creation server-side too, so a
+    // modified or buggy client can't bypass the client-only check.
+    // Deliberately status-only, not time-based: expiresAt is stored as an
+    // ISO string (not a Firestore Timestamp), and comparing that against
+    // request.time here would be unreliable — trial time-expiry is already
+    // correctly handled client-side in BusinessSubscription.isActive.
+    function hasActiveSubscription(businessId) {
+      return get(/databases/$(database)/documents/subscriptions/$(businessId)).data.status in ['trial', 'active'];
+    }
+
     // True if the caller is an active staff member of the given business.
     function isStaffOf(businessId) {
       return isSignedIn() &&
@@ -114,6 +127,7 @@ service cloud.firestore {
         request.resource.data.restaurantId != null &&
         canActFor(request.resource.data.restaurantId) &&
         isApprovedBusiness(request.resource.data.restaurantId) &&
+        hasActiveSubscription(request.resource.data.restaurantId) &&
         request.resource.data.moderationStatus == 'pending' &&
         request.resource.data.isActive == false &&
         request.resource.data.redeemed == 0 &&

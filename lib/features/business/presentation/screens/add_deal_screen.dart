@@ -4,9 +4,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../config/routes/app_routes.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/providers/categories_provider.dart';
+import '../../../subscription/data/services/subscription_service.dart';
 import '../../data/models/deal_creation_form.dart';
 import '../providers/business_provider.dart';
 import '../widgets/category_and_tags.dart';
@@ -133,6 +136,32 @@ class _AddDealScreenState extends ConsumerState<AddDealScreen> {
     final restaurantName = appUser.displayName?.isNotEmpty == true
         ? appUser.displayName!
         : appUser.email;
+
+    // Enforce the subscription limit before spending an image upload: no
+    // active/trial subscription, or already at the plan's active-deal cap.
+    // This was never actually called anywhere before — the app would let
+    // any approved business create unlimited deals regardless of payment
+    // status, since only firestore.rules' isApprovedBusiness() gated
+    // creation, and that only checks moderation approval, not billing.
+    final canCreate =
+        await SubscriptionService().canCreateDeal(businessId);
+    if (!canCreate) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            "You've reached your plan's active deal limit, or your "
+            'subscription has lapsed. Check Subscription in your profile.',
+          ),
+          backgroundColor: Colors.red,
+          action: SnackBarAction(
+            label: 'View plan',
+            onPressed: () => context.push(AppRoutes.subscription),
+          ),
+        ),
+      );
+      return;
+    }
 
     final form = _buildForm();
 
