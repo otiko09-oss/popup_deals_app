@@ -11,7 +11,10 @@
   git-ignored) — each dev/build machine needs its own with this key set.
 - [ ] Store Stripe credentials outside git (`functions/.env.example` lists
   every required name), create the Stripe products/prices, and register the
-  deployed webhook for checkout and subscription lifecycle events.
+  deployed webhook for checkout and subscription lifecycle events. Enable the
+  Stripe Billing Portal and configure its cancellation, payment-method and
+  invoice settings before deployment; the app's “Manage billing” button opens
+  that portal for paid businesses.
 - [ ] Deploy rules, indexes, Storage rules and functions together:
   `firebase deploy --only firestore:rules,firestore:indexes,storage,functions`.
 - [x] Admin bootstrap script added: `scripts/set-admin.js` (see the header

@@ -46,9 +46,7 @@ class OrderCreationState {
 
 /// StateNotifier for managing order creation
 class OrderCreationNotifier extends StateNotifier<OrderCreationState> {
-  OrderCreationNotifier(this._orderService, this._redemptionService)
-      : super(OrderCreationState());
-  final OrderService _orderService;
+  OrderCreationNotifier(this._redemptionService) : super(OrderCreationState());
   final RedemptionService _redemptionService;
 
   /// Create a new order
@@ -102,9 +100,8 @@ class OrderCreationNotifier extends StateNotifier<OrderCreationState> {
 /// Provider for order creation
 final orderCreationProvider =
     StateNotifierProvider<OrderCreationNotifier, OrderCreationState>((ref) {
-  final service = ref.watch(orderServiceProvider);
   final redemptionService = RedemptionService();
-  return OrderCreationNotifier(service, redemptionService);
+  return OrderCreationNotifier(redemptionService);
 });
 
 /// State for order status updates

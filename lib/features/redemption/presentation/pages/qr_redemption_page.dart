@@ -14,6 +14,11 @@ final userRedemptionsProvider =
   return ref.watch(redemptionServiceProvider).getUserRedemptionsStream(userId);
 });
 
+final redemptionProvider =
+    FutureProvider.family<RedemptionModel?, String>((ref, redemptionId) {
+  return ref.watch(redemptionServiceProvider).getRedemption(redemptionId);
+});
+
 class QrRedemptionPage extends ConsumerWidget {
   const QrRedemptionPage({
     required this.redemption,
@@ -45,32 +50,39 @@ class QrRedemptionPage extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 32),
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 24,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
+            if (redemption.isValid)
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: QrImageView(
+                  data: redemption.qrPayload,
+                  size: 220,
+                ),
+              )
+            else
+              Icon(
+                Icons.qr_code_2_outlined,
+                size: 160,
+                color: theme.colorScheme.outline,
               ),
-              child: QrImageView(
-                data: redemption.qrPayload,
-                version: QrVersions.auto,
-                size: 220,
-                backgroundColor: Colors.white,
-              ),
-            ),
             const SizedBox(height: 24),
             _StatusChip(redemption: redemption),
             const SizedBox(height: 16),
             Text(
-              'Show this QR code at ${redemption.businessName ?? 'the business'} '
-              'to redeem your deal.',
+              redemption.isValid
+                  ? 'Show this QR code at ${redemption.businessName ?? 'the business'} '
+                      'to redeem your deal.'
+                  : 'This QR code can no longer be used.',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium,
             ),

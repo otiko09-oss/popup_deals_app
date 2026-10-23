@@ -21,7 +21,7 @@ Map<String, dynamic> _baseJson({
       'startTime': DateTime(2026, 1, 1, 10).toIso8601String(),
       'endTime': DateTime(2026, 1, 1, 22).toIso8601String(),
       'expiresAt': DateTime(2026, 1, 2).toIso8601String(),
-      'createdAt': DateTime(2026, 1, 1).toIso8601String(),
+      'createdAt': DateTime(2026).toIso8601String(),
       'isActive': true,
       'likes': 4,
       'redeemed': 1,
@@ -33,15 +33,14 @@ Map<String, dynamic> _baseJson({
 void main() {
   group('Deal.fromJson numeric parsing', () {
     test('accepts integer price values from Firestore, not just doubles', () {
-      final deal =
-          Deal.fromJson(_baseJson(originalPrice: 20, discountedPrice: 12));
+      final deal = Deal.fromJson(_baseJson(discountedPrice: 12));
       expect(deal.originalPrice, 20.0);
       expect(deal.discountedPrice, 12.0);
       expect(deal.originalPrice, isA<double>());
     });
 
     test('accepts integer latitude/longitude values', () {
-      final deal = Deal.fromJson(_baseJson(latitude: 41, longitude: 44));
+      final deal = Deal.fromJson(_baseJson());
       expect(deal.latitude, 41.0);
       expect(deal.longitude, 44.0);
     });

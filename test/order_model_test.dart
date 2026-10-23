@@ -11,7 +11,8 @@ void main() {
       expect(OrderStatus.fromString('cancelled'), OrderStatus.cancelled);
     });
 
-    test('falls back to pending for an unrecognized string instead of throwing', () {
+    test('falls back to pending for an unrecognized string instead of throwing',
+        () {
       expect(OrderStatus.fromString('some_typo'), OrderStatus.pending);
       expect(OrderStatus.fromString(''), OrderStatus.pending);
     });
@@ -41,7 +42,8 @@ void main() {
       final hexPattern = RegExp(r'^#[0-9A-Fa-f]{6}$');
       for (final status in OrderStatus.values) {
         expect(hexPattern.hasMatch(status.displayColor), isTrue,
-            reason: '${status.name} has an invalid color: ${status.displayColor}');
+            reason:
+                '${status.name} has an invalid color: ${status.displayColor}');
       }
     });
 
@@ -58,7 +60,7 @@ void main() {
           'dealId': 'deal_1',
           'businessId': 'biz_1',
           'status': status,
-          'createdAt': DateTime(2026, 1, 1).toIso8601String(),
+          'createdAt': DateTime(2026).toIso8601String(),
           'dealTitle': '2-for-1 Pizza',
           'dealPrice': 12.5,
           'dealImage': 'https://example.com/pizza.jpg',
@@ -80,6 +82,16 @@ void main() {
     test('missing quantity defaults to 1', () {
       final order = baseOrder();
       expect(order.quantity, 1);
+    });
+
+    test('preserves the server-created redemption link', () {
+      final order = OrderModel.fromJson({
+        ...baseOrder().toJson(),
+        'redemptionId': 'redemption_1',
+      });
+
+      expect(order.redemptionId, 'redemption_1');
+      expect(order.toJson()['redemptionId'], 'redemption_1');
     });
 
     test('status string maps correctly through the full model', () {

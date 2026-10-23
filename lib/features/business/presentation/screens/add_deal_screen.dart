@@ -7,8 +7,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/routes/app_routes.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/providers/categories_provider.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../subscription/data/services/subscription_service.dart';
 import '../../data/models/deal_creation_form.dart';
 import '../providers/business_provider.dart';
@@ -143,8 +143,7 @@ class _AddDealScreenState extends ConsumerState<AddDealScreen> {
     // any approved business create unlimited deals regardless of payment
     // status, since only firestore.rules' isApprovedBusiness() gated
     // creation, and that only checks moderation approval, not billing.
-    final canCreate =
-        await SubscriptionService().canCreateDeal(businessId);
+    final canCreate = await SubscriptionService().canCreateDeal(businessId);
     if (!canCreate) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

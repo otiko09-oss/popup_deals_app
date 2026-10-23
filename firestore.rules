@@ -159,13 +159,10 @@ service cloud.firestore {
       // their matching redemption record. Clients never create orders
       // directly, so this stays locked.
       allow create: if false;
-      // The customer can update their own order (e.g. cancel); the
-      // business or its staff can update it too (e.g. mark completed on
-      // redemption) — but neither side can reassign who it belongs to.
-      allow update: if isSignedIn() &&
-        (resource.data.userId == request.auth.uid || canActFor(resource.data.businessId)) &&
-        !('userId' in request.resource.data.diff(resource.data).affectedKeys()) &&
-        !('businessId' in request.resource.data.diff(resource.data).affectedKeys());
+      // Status transitions happen exclusively through updateOrderStatus or
+      // redeemReservation. Allowing direct writes would let a modified client
+      // mark an order as completed, change its price, or forge timestamps.
+      allow update: if false;
       allow delete: if isAdmin();
     }
 
@@ -180,15 +177,9 @@ service cloud.firestore {
       // would let any signed-in user forge a redemption record (e.g. one
       // already marked "completed") without ever placing a real order.
       allow create: if false;
-      // Only the business (owner or active staff) performing the scan may
-      // update a redemption, and only to flip its status/redeemedAt —
-      // every identifying field is locked after creation.
-      allow update: if isSignedIn() &&
-        canActFor(resource.data.businessId) &&
-        !('userId' in request.resource.data.diff(resource.data).affectedKeys()) &&
-        !('businessId' in request.resource.data.diff(resource.data).affectedKeys()) &&
-        !('dealId' in request.resource.data.diff(resource.data).affectedKeys()) &&
-        !('orderId' in request.resource.data.diff(resource.data).affectedKeys());
+      // QR validation is atomic in redeemReservation; direct client writes
+      // would let a modified app mark a QR as redeemed or revive an expired one.
+      allow update: if false;
       allow delete: if false;
     }
 
@@ -196,19 +187,23 @@ service cloud.firestore {
       allow read: if isSignedIn() &&
         (isOwner(businessId) || isAdmin());
       // Self-service exception: the owner may create their own initial
-      // 30-day trial, and may cancel it (status + expiresAt only) —
+      // 30-day trial. Paid plan changes and cancellation are handled in
+      // Stripe's Billing Portal and reflected by the webhook —
       // everything else (activation, plan changes, billing fields) is
       // written only by the Cloud Functions Stripe webhook (Admin SDK).
       allow create: if isOwner(businessId) &&
         request.resource.data.status == 'trial' &&
         request.resource.data.businessId == businessId &&
         request.resource.data.planId == 'starter';
-      allow update: if isOwner(businessId) &&
-        resource.data.status == 'trial' &&
-        request.resource.data.status == 'cancelled' &&
-        request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['status', 'expiresAt']);
+      allow update: if false;
       allow delete: if false;
+    }
+
+    match /reviews/{reviewId} {
+      // Reviews are public marketplace content. Creation and edits are
+      // server-only: submitReview verifies ownership and completed status.
+      allow read: if true;
+      allow create, update, delete: if false;
     }
 
     // Optional, admin-managed product catalogue used by the subscription UI.

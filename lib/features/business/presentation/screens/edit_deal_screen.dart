@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/providers/categories_provider.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/models/deal_creation_form.dart';
 import '../providers/business_provider.dart';
 import '../widgets/category_and_tags.dart';

@@ -9,7 +9,7 @@ BusinessSubscription _sub({
       businessId: 'biz_1',
       planId: 'growth',
       status: status,
-      startedAt: DateTime(2026, 1, 1),
+      startedAt: DateTime(2026),
       expiresAt: expiresAt,
     );
 
@@ -17,21 +17,19 @@ void main() {
   group('BusinessSubscription.isActive', () {
     test('is true when status is active and not expired', () {
       final sub = _sub(
-        status: 'active',
         expiresAt: DateTime.now().add(const Duration(days: 5)),
       );
       expect(sub.isActive, isTrue);
     });
 
     test('is true when status is active and there is no expiry set', () {
-      final sub = _sub(status: 'active', expiresAt: null);
+      final sub = _sub();
       expect(sub.isActive, isTrue);
     });
 
     test('is false once expiresAt is in the past, even if status says active',
         () {
       final sub = _sub(
-        status: 'active',
         expiresAt: DateTime.now().subtract(const Duration(days: 1)),
       );
       expect(sub.isActive, isFalse);
@@ -54,8 +52,8 @@ void main() {
         businessId: 'biz_1',
         planId: 'premium',
         status: 'active',
-        startedAt: DateTime(2026, 3, 1),
-        expiresAt: DateTime(2026, 4, 1),
+        startedAt: DateTime(2026, 3),
+        expiresAt: DateTime(2026, 4),
         stripeCustomerId: 'cus_123',
         stripeSubscriptionId: 'sub_456',
       );
@@ -72,7 +70,7 @@ void main() {
       final json = {
         'businessId': 'biz_1',
         'status': 'active',
-        'startedAt': DateTime(2026, 1, 1).toIso8601String(),
+        'startedAt': DateTime(2026).toIso8601String(),
       };
       final restored = BusinessSubscription.fromJson(json);
       expect(restored.planId, 'starter');

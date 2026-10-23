@@ -6,6 +6,7 @@ import 'package:popup_deals_app/config/routes/app_routes.dart';
 import 'package:popup_deals_app/core/services/haptic_service.dart';
 import 'package:popup_deals_app/core/theme/app_theme.dart';
 import 'package:popup_deals_app/core/widgets/skeleton_loader.dart';
+import 'package:popup_deals_app/features/deals/presentation/providers/deals_provider.dart';
 import 'package:popup_deals_app/features/deals/presentation/providers/popup_deals_provider.dart';
 import 'package:popup_deals_app/features/deals/presentation/widgets/deal_card.dart';
 
@@ -68,9 +69,9 @@ class _PopupDealsFeedPageState extends ConsumerState<PopupDealsFeedPage> {
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: locationAsync.when(
         loading: _buildLoadingScaffold,
-        error: (_, __) => _buildLocationError(),
+        error: (_, __) => _buildDealsWithoutLocation(),
         data: (position) {
-          if (position == null) return _buildLocationDenied();
+          if (position == null) return _buildDealsWithoutLocation();
           return _buildContent(position.latitude, position.longitude);
         },
       ),
@@ -283,37 +284,68 @@ class _PopupDealsFeedPageState extends ConsumerState<PopupDealsFeedPage> {
         body: const SingleChildScrollView(child: DealListSkeleton()),
       );
 
-  Widget _buildLocationError() => Scaffold(
-        appBar: AppBar(title: const Text('Popup Deals')),
-        body: _buildEmpty(
-          icon: Icons.location_off_outlined,
-          title: 'Location unavailable',
-          subtitle: 'Enable location to discover deals near you',
-          action: FilledButton.icon(
-            onPressed: () {
-              final _ = ref.refresh(userLocationProvider);
-            },
-            icon: const Icon(Icons.refresh),
-            label: const Text('Try again'),
-          ),
+  Widget _buildDealsWithoutLocation() => Scaffold(
+        appBar: AppBar(
+          title: const Text('Popup Deals'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.my_location_outlined),
+              tooltip: 'Enable location',
+              onPressed: () async {
+                final svc = ref.read(locationServiceProvider);
+                await svc.openAppSettings();
+                ref.invalidate(userLocationProvider);
+              },
+            ),
+          ],
         ),
-      );
-
-  Widget _buildLocationDenied() => Scaffold(
-        appBar: AppBar(title: const Text('Popup Deals')),
-        body: _buildEmpty(
-          icon: Icons.location_disabled_outlined,
-          title: 'Location access denied',
-          subtitle: 'Grant location permission in settings to see nearby deals',
-          action: FilledButton.icon(
-            onPressed: () async {
-              final svc = ref.read(locationServiceProvider);
-              await svc.openAppSettings();
-              final _ = ref.refresh(userLocationProvider);
-            },
-            icon: const Icon(Icons.settings_outlined),
-            label: const Text('Open Settings'),
-          ),
+        body: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.secondaryContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'Showing all active deals. Enable location to sort by distance.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSecondaryContainer,
+                ),
+              ),
+            ),
+            Expanded(
+              child: ref.watch(dealsProvider).when(
+                    loading: () => const DealListSkeleton(),
+                    error: (error, _) => _buildError(
+                      () => ref.invalidate(dealsProvider),
+                    ),
+                    data: (deals) => deals.isEmpty
+                        ? _buildEmpty(
+                            icon: Icons.local_offer_outlined,
+                            title: 'No active deals',
+                            subtitle: 'Check back soon — new deals drop daily!',
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+                            itemCount: deals.length,
+                            itemBuilder: (context, index) {
+                              final deal = deals[index];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: DealCard(
+                                  deal: deal,
+                                  userLatitude: null,
+                                  userLongitude: null,
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+            ),
+          ],
         ),
       );
 

@@ -162,13 +162,22 @@ class SubscriptionService {
     return (activeDeals.count ?? 0) < plan.maxActiveDeals;
   }
 
-  /// Cancels immediately — allowed as a narrow self-service exception in
-  /// firestore.rules (only status:'cancelled' + expiresAt may be set by
-  /// the owner; every other subscription field stays backend-only).
-  Future<void> cancelSubscription(String businessId) async {
-    await _firestore.collection('subscriptions').doc(businessId).update({
-      'status': 'cancelled',
-      'expiresAt': DateTime.now().toIso8601String(),
-    });
+  /// Opens Stripe's hosted billing portal for payment methods, invoices,
+  /// upgrades, and cancellations. Firestore is updated only by Stripe's
+  /// webhook after Stripe confirms the change.
+  Future<String> openBillingPortal({required String businessId}) async {
+    try {
+      final result = await _functions
+          .httpsCallable('createBillingPortalSession')
+          .call<Map<String, dynamic>>({'businessId': businessId});
+      final url = result.data['url'] as String?;
+      if (url == null || url.isEmpty) {
+        throw StateError('Billing portal did not return a URL.');
+      }
+      return url;
+    } on FirebaseFunctionsException catch (e) {
+      _logger.e('createBillingPortalSession failed: ${e.code} ${e.message}');
+      rethrow;
+    }
   }
 }

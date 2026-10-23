@@ -2,11 +2,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../features/admin/presentation/pages/admin_dashboard_page.dart';
+import '../../features/auth/data/models/app_user.dart';
 import '../../features/auth/presentation/pages/forgot_password_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
+import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/business/presentation/pages/business_deals_page.dart';
 import '../../features/business/presentation/pages/business_onboarding_page.dart';
 import '../../features/business/presentation/pages/manage_staff_page.dart';
@@ -29,7 +32,6 @@ import '../../features/profile/presentation/pages/settings_page.dart';
 import '../../features/profile/presentation/pages/terms_of_service_page.dart';
 import '../../features/redemption/presentation/pages/qr_scanner_entry_point.dart';
 import '../../features/subscription/presentation/pages/subscription_page.dart';
-import '../../features/auth/presentation/providers/auth_provider.dart';
 import 'app_routes.dart';
 
 // Routes reachable without being logged in.
@@ -80,6 +82,58 @@ final businessProfileExistsProvider = StreamProvider<bool?>((ref) {
       .map((snap) => snap.exists);
 });
 
+String? resolveAuthRedirect({
+  required String path,
+  required AsyncValue<AppUser?> authState,
+  bool? businessProfileExists,
+  bool isActiveBusinessStaff = false,
+  bool isAdmin = false,
+}) {
+  if (authState.isLoading) {
+    return path == AppRoutes.splash ? null : AppRoutes.splash;
+  }
+
+  final user = authState.asData?.value;
+  final loggedIn = user != null;
+
+  if (!loggedIn && !_publicRoutes.contains(path)) {
+    return AppRoutes.login;
+  }
+
+  if (loggedIn && _publicRoutes.contains(path)) {
+    if (user.userType == 'restaurant') {
+      return businessProfileExists == true
+          ? AppRoutes.businessDeals
+          : AppRoutes.businessOnboarding;
+    }
+    return AppRoutes.home;
+  }
+
+  if (loggedIn &&
+      user.userType == 'restaurant' &&
+      path != AppRoutes.businessOnboarding &&
+      businessProfileExists != true) {
+    return AppRoutes.businessOnboarding;
+  }
+
+  if (path == AppRoutes.admin && !isAdmin) {
+    return loggedIn ? AppRoutes.home : AppRoutes.login;
+  }
+
+  if (loggedIn &&
+      _businessOnlyRoutes.contains(path) &&
+      user.userType != 'restaurant' &&
+      !(path == AppRoutes.qrScanner && isActiveBusinessStaff)) {
+    return AppRoutes.home;
+  }
+
+  if (path == AppRoutes.splash && !loggedIn) {
+    return null;
+  }
+
+  return null;
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
   // IMPORTANT: this used to be `final authState = ref.watch(authProvider);`
   // directly inside this Provider<GoRouter> builder. That meant every single
@@ -105,14 +159,14 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: AppRoutes.splash,
     refreshListenable: notifier,
-    redirect: (context, state) {
+    redirect: (context, state) async {
       final path = state.matchedLocation;
-      // Read fresh each call — this closure is created once now, so it
-      // must not close over a stale authState from build time.
       final authState = ref.read(authProvider);
+      final businessProfileExists =
+          ref.read(businessProfileExistsProvider).asData?.value;
+      final isActiveBusinessStaff =
+          ref.read(isActiveBusinessStaffProvider).asData?.value ?? false;
 
-      // Still resolving the initial auth session — let the splash screen
-      // show instead of bouncing the user around while we don't know yet.
       if (authState.isLoading) {
         return path == AppRoutes.splash ? null : AppRoutes.splash;
       }
@@ -120,60 +174,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       final user = authState.asData?.value;
       final loggedIn = user != null;
 
-      // Not logged in and trying to reach a protected route -> send to login.
-      if (!loggedIn && !_publicRoutes.contains(path)) {
-        return AppRoutes.login;
+      if (path == AppRoutes.splash && !loggedIn) {
+        final prefs = await SharedPreferences.getInstance();
+        final seenOnboarding = prefs.getBool('onboardingSeen') ?? false;
+        return seenOnboarding ? AppRoutes.login : AppRoutes.onboarding;
       }
 
-      // Logged in but sitting on splash/login/register -> send to the
-      // right home for their account type.
-      if (loggedIn && _publicRoutes.contains(path)) {
-        if (user.userType == 'restaurant') {
-          final hasBusinessProfile =
-              ref.read(businessProfileExistsProvider).asData?.value;
-          return hasBusinessProfile == false
-              ? AppRoutes.businessOnboarding
-              : AppRoutes.businessDeals;
-        }
-        return AppRoutes.home;
-      }
-
-      // A 'restaurant' account without a businesses/{uid} doc yet (onboarding
-      // never completed) must finish onboarding before reaching any other
-      // business screen — see businessProfileExistsProvider doc comment.
-      if (loggedIn &&
-          user.userType == 'restaurant' &&
-          path != AppRoutes.businessOnboarding &&
-          ref.read(businessProfileExistsProvider).asData?.value == false) {
-        return AppRoutes.businessOnboarding;
-      }
-
-      // Admin dashboard requires the isAdmin flag specifically.
-      if (path == AppRoutes.admin && !(user?.isAdmin ?? false)) {
-        return loggedIn ? AppRoutes.home : AppRoutes.login;
-      }
-
-      // Business-only screens: customers get bounced to their home feed.
-      // Exception: qrScanner also supports active staff accounts (they
-      // sign up as ordinary customers, then a business owner grants them
-      // access via ManageStaffPage) — QrScannerEntryPoint itself already
-      // knows how to resolve which business a staff member is acting for
-      // via BusinessStaffService.resolveActingBusinessId(); the redirect
-      // just needs to stop bouncing them away before that code ever runs.
-      // Every other business-only route assumes the signed-in uid IS the
-      // business (they read businesses/{appUser.uid} directly) and isn't
-      // staff-aware, so widening this exception to those routes would
-      // break rather than fix things for staff.
-      if (loggedIn &&
-          _businessOnlyRoutes.contains(path) &&
-          user.userType != 'restaurant' &&
-          !(path == AppRoutes.qrScanner &&
-              (ref.read(isActiveBusinessStaffProvider).asData?.value ??
-                  false))) {
-        return AppRoutes.home;
-      }
-
-      return null;
+      return resolveAuthRedirect(
+        path: path,
+        authState: authState,
+        businessProfileExists: businessProfileExists,
+        isActiveBusinessStaff: isActiveBusinessStaff,
+        isAdmin: user?.isAdmin ?? false,
+      );
     },
     routes: [
       GoRoute(

@@ -55,8 +55,8 @@ class FavoritesPage extends ConsumerWidget {
               itemCount: favoriteIds.length,
               itemBuilder: (context, index) => _FavoriteDealTile(
                 dealId: favoriteIds[index],
-                userLatitude: locationAsync.asData?.value?.latitude ?? 0,
-                userLongitude: locationAsync.asData?.value?.longitude ?? 0,
+                userLatitude: locationAsync.asData?.value?.latitude,
+                userLongitude: locationAsync.asData?.value?.longitude,
               ),
             ),
     );
@@ -70,8 +70,8 @@ class _FavoriteDealTile extends ConsumerWidget {
     required this.userLongitude,
   });
   final String dealId;
-  final double userLatitude;
-  final double userLongitude;
+  final double? userLatitude;
+  final double? userLongitude;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

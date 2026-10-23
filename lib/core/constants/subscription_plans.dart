@@ -60,7 +60,6 @@ class SubscriptionPlans {
     name: 'Starter',
     priceUsd: 29,
     maxActiveDeals: 3,
-    sortOrder: 0,
     features: [
       'Up to 3 active deals',
       'Basic business profile',

@@ -31,7 +31,8 @@ void main() {
     });
 
     test('trialDaysRemaining counts down correctly mid-trial', () {
-      final sub = _trial(expiresAt: DateTime.now().add(const Duration(days: 5)));
+      final sub =
+          _trial(expiresAt: DateTime.now().add(const Duration(days: 5)));
       expect(sub.trialDaysRemaining, inInclusiveRange(4, 5));
     });
 

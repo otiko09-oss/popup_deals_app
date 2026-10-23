@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:logger/logger.dart';
 
 import 'config/firebase/firebase_init.dart';
@@ -23,7 +23,6 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   FlutterError.onError = (details) {
     Logger().e('FlutterError: ${details.exception}',
@@ -35,6 +34,8 @@ void main() async {
         .e('PlatformDispatcher error: $error', error: error, stackTrace: stack);
     return true;
   };
+
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   await runZonedGuarded(() async {
     try {

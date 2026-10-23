@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:popup_deals_app/config/routes/app_routes.dart';
 import 'package:popup_deals_app/core/theme/app_theme.dart';
+import 'package:popup_deals_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:popup_deals_app/features/deals/data/models/deal.dart';
 import 'package:popup_deals_app/features/deals/presentation/providers/popup_deals_provider.dart';
 
@@ -12,15 +15,20 @@ class DealCard extends ConsumerWidget {
     super.key,
   });
   final Deal deal;
-  final double userLatitude;
-  final double userLongitude;
+  final double? userLatitude;
+  final double? userLongitude;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final distanceAsync = ref.watch(
-      distanceToDealProvider(
-          (userLatitude, userLongitude, deal.latitude, deal.longitude)),
-    );
+    final appUser = ref.watch(authProvider).asData?.value;
+    final isFavorite = appUser?.favorites.contains(deal.id) ?? false;
+    final distanceAsync = userLatitude != null && userLongitude != null
+        ? ref.watch(
+            distanceToDealProvider(
+              (userLatitude!, userLongitude!, deal.latitude, deal.longitude),
+            ),
+          )
+        : null;
     final timeRemainingAsync =
         ref.watch(formattedTimeRemainingProvider(deal.endTime));
 
@@ -196,47 +204,50 @@ class DealCard extends ConsumerWidget {
                     ),
                     const SizedBox(height: AppTheme.spacingMd),
 
-                    // Distance Info
+                    // Distance is useful only when the user opted into
+                    // location access. Keep the card fully usable without it.
                     Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppTheme.spacingSm,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                            borderRadius:
-                                BorderRadius.circular(AppTheme.radiusMd),
-                          ),
-                          child: distanceAsync.when(
-                            loading: () => const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                        if (distanceAsync != null) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppTheme.spacingSm,
+                              vertical: 4,
                             ),
-                            error: (error, stackTrace) => Text(
-                              'N/A km',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelSmall
-                                  ?.copyWith(
-                                    color: AppTheme.primaryColor,
-                                  ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryColor
+                                  .withValues(alpha: 0.1),
+                              borderRadius:
+                                  BorderRadius.circular(AppTheme.radiusMd),
                             ),
-                            data: (distance) => Text(
-                              '${distance.toStringAsFixed(1)} km',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelSmall
-                                  ?.copyWith(
-                                    color: AppTheme.primaryColor,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                            child: distanceAsync.when(
+                              loading: () => const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                              error: (error, stackTrace) => Text(
+                                'Distance unavailable',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(color: AppTheme.primaryColor),
+                              ),
+                              data: (distance) => Text(
+                                '${distance.toStringAsFixed(1)} km',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color: AppTheme.primaryColor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
                             ),
                           ),
-                        ),
-                        const Spacer(),
+                          const Spacer(),
+                        ],
                         // Category Badge
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -307,18 +318,38 @@ class DealCard extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: OutlinedButton.icon(
-                            icon: const Icon(Icons.favorite_border),
-                            label: const Text('Save'),
-                            onPressed: () {
-                              // Add to favorites
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Added to favorites'),
-                                  duration: Duration(seconds: 2),
-                                  backgroundColor: AppTheme.successColor,
-                                ),
-                              );
-                            },
+                            icon: Icon(
+                              isFavorite
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                            ),
+                            label: Text(isFavorite ? 'Saved' : 'Save'),
+                            onPressed: appUser == null
+                                ? () => ScaffoldMessenger.of(context)
+                                    .showSnackBar(
+                                      const SnackBar(
+                                        content:
+                                            Text('Please sign in to save deals'),
+                                      ),
+                                    )
+                                : () async {
+                                    try {
+                                      await ref
+                                          .read(authProvider.notifier)
+                                          .toggleFavorite(deal.id);
+                                    } on Object {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Could not update saved deals. Try again.',
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
                           ),
                         ),
                         const SizedBox(width: AppTheme.spacingSm),
@@ -326,9 +357,9 @@ class DealCard extends ConsumerWidget {
                           child: ElevatedButton.icon(
                             icon: const Icon(Icons.arrow_forward),
                             label: const Text('View'),
-                            onPressed: () {
-                              // View deal details
-                            },
+                            onPressed: () => context.push(
+                              '${AppRoutes.dealDetail}/${deal.id}',
+                            ),
                           ),
                         ),
                       ],

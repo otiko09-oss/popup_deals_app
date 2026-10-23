@@ -50,8 +50,8 @@ class _BusinessOnboardingPageState
       // Same best-effort pattern as add_deal_screen: use the device's
       // current position for the business's map location, but never block
       // onboarding if permission is denied or location is unavailable.
-      double latitude = 0.0;
-      double longitude = 0.0;
+      var latitude = 0.0;
+      var longitude = 0.0;
       try {
         final position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high,

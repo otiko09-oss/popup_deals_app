@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -5,6 +6,7 @@ import 'package:popup_deals_app/core/theme/app_theme.dart';
 import 'package:popup_deals_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:popup_deals_app/features/deals/presentation/providers/deals_provider.dart';
 import 'package:popup_deals_app/features/orders/presentation/widgets/reserve_button.dart';
+import 'package:popup_deals_app/features/reviews/presentation/providers/review_provider.dart';
 
 class DealDetailPage extends ConsumerWidget {
   const DealDetailPage({
@@ -49,11 +51,20 @@ class DealDetailPage extends ConsumerWidget {
                         color: Colors.grey.shade300,
                         child: Stack(
                           children: [
-                            Center(
-                              child: Icon(
-                                Icons.image,
-                                size: 100,
-                                color: Colors.grey.shade400,
+                            Positioned.fill(
+                              child: CachedNetworkImage(
+                                imageUrl: deal.imageUrl,
+                                fit: BoxFit.cover,
+                                placeholder: (_, __) => const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                                errorWidget: (_, __, ___) => Center(
+                                  child: Icon(
+                                    Icons.image_outlined,
+                                    size: 72,
+                                    color: Colors.grey.shade400,
+                                  ),
+                                ),
                               ),
                             ),
                             Positioned(
@@ -142,21 +153,66 @@ class DealDetailPage extends ConsumerWidget {
                                               .titleMedium,
                                         ),
                                         const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              Icons.star,
-                                              size: 16,
-                                              color: Colors.amber.shade600,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              '4.5 (125 reviews)',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodySmall,
-                                            ),
-                                          ],
+                                        Consumer(
+                                          builder: (context, ref, _) {
+                                            final rating = ref.watch(
+                                              businessRatingProvider(
+                                                deal.restaurantId,
+                                              ),
+                                            );
+                                            return rating.when(
+                                              loading: () => Text(
+                                                deal.restaurantAddress
+                                                            ?.isNotEmpty ==
+                                                        true
+                                                    ? deal.restaurantAddress!
+                                                    : deal.category,
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodySmall,
+                                              ),
+                                              error: (_, __) => Text(
+                                                deal.restaurantAddress
+                                                            ?.isNotEmpty ==
+                                                        true
+                                                    ? deal.restaurantAddress!
+                                                    : deal.category,
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodySmall,
+                                              ),
+                                              data: (value) => value.count > 0
+                                                  ? Row(
+                                                      children: [
+                                                        Icon(
+                                                          Icons.star,
+                                                          size: 16,
+                                                          color: Colors.amber
+                                                              .shade700,
+                                                        ),
+                                                        const SizedBox(width: 4),
+                                                        Text(
+                                                          '${value.average.toStringAsFixed(1)} (${value.count} review${value.count == 1 ? '' : 's'})',
+                                                          style:
+                                                              Theme.of(context)
+                                                                  .textTheme
+                                                                  .bodySmall,
+                                                        ),
+                                                      ],
+                                                    )
+                                                  : Text(
+                                                      deal.restaurantAddress
+                                                                  ?.isNotEmpty ==
+                                                              true
+                                                          ? deal
+                                                              .restaurantAddress!
+                                                          : 'No reviews yet',
+                                                      style: Theme.of(context)
+                                                          .textTheme
+                                                          .bodySmall,
+                                                    ),
+                                            );
+                                          },
                                         ),
                                       ],
                                     ),

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:popup_deals_app/features/orders/data/models/order_model.dart';
+import 'package:popup_deals_app/features/redemption/presentation/pages/qr_redemption_page.dart';
+import 'package:popup_deals_app/features/reviews/presentation/providers/review_provider.dart';
+import 'package:popup_deals_app/features/reviews/presentation/widgets/review_form_dialog.dart';
 import '../providers/order_provider.dart';
 import '../widgets/order_cards.dart';
 
@@ -117,14 +120,19 @@ class UserOrderHistoryScreen extends ConsumerWidget {
 }
 
 /// Bottom sheet showing order details
-class _OrderDetailsSheet extends StatelessWidget {
+class _OrderDetailsSheet extends ConsumerWidget {
   const _OrderDetailsSheet({
     required this.order,
   });
   final OrderModel order;
 
   @override
-  Widget build(BuildContext context) => Padding(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final redemptionAsync = order.redemptionId?.isNotEmpty == true
+        ? ref.watch(redemptionProvider(order.redemptionId!))
+        : null;
+
+    return Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -297,10 +305,82 @@ class _OrderDetailsSheet extends StatelessWidget {
                 time: order.completedAt!,
               ),
 
+            if (redemptionAsync != null) ...[
+              const SizedBox(height: 8),
+              redemptionAsync.when(
+                loading: () => const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(8),
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+                error: (_, __) => const Text(
+                  'Could not load this reservation QR code.',
+                  textAlign: TextAlign.center,
+                ),
+                data: (redemption) => redemption == null
+                    ? const SizedBox.shrink()
+                    : SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          icon: const Icon(Icons.qr_code_2_outlined),
+                          label: Text(
+                            redemption.isValid
+                                ? 'Show QR Code'
+                                : 'View QR Status',
+                          ),
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) =>
+                                  QrRedemptionPage(redemption: redemption),
+                            ),
+                          ),
+                        ),
+                      ),
+              ),
+            ],
+            if (order.status == OrderStatus.completed) ...[
+              const SizedBox(height: 8),
+              ref.watch(reviewForOrderProvider(order.id)).when(
+                    loading: () => const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(8),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                    error: (_, __) => const Text(
+                      'Could not load your review status.',
+                      textAlign: TextAlign.center,
+                    ),
+                    data: (review) => SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: Icon(
+                          review == null
+                              ? Icons.star_outline
+                              : Icons.edit_outlined,
+                        ),
+                        label: Text(
+                          review == null ? 'Rate this deal' : 'Edit your review',
+                        ),
+                        onPressed: () async {
+                          final saved = await showDialog<bool>(
+                            context: context,
+                            builder: (_) => ReviewFormDialog(orderId: order.id),
+                          );
+                          if (saved == true) {
+                            ref.invalidate(reviewForOrderProvider(order.id));
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+            ],
             const SizedBox(height: 20),
           ],
         ),
       );
+  }
 }
 
 /// Timeline item widget

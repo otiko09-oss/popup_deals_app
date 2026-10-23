@@ -135,7 +135,12 @@ class AuthNotifier extends StateNotifier<AsyncValue<AppUser?>> {
           .get();
 
       if (doc.exists && doc.data() != null) {
-        return AppUser.fromJson({'uid': user.uid, ...doc.data()!});
+        final appUser = AppUser.fromJson({'uid': user.uid, ...doc.data()!});
+        // Keep the current device registered after Google sign-in too. This
+        // must mirror the email sign-in path, otherwise returning Google
+        // users silently stop receiving reservation notifications.
+        unawaited(NotificationService().registerDevice(appUser.uid));
+        return appUser;
       }
 
       final appUser = AppUser(
@@ -163,7 +168,15 @@ class AuthNotifier extends StateNotifier<AsyncValue<AppUser?>> {
 
   Future<void> logout() async {
     final userId = _authService.currentUser?.uid;
-    if (userId != null) await NotificationService().unregisterDevice(userId);
+    // Device-token cleanup is best effort. A network or Firestore failure
+    // must never prevent a user from signing out of Firebase Auth.
+    if (userId != null) {
+      try {
+        await NotificationService().unregisterDevice(userId);
+      } on Object {
+        // The token will be reconciled on the next successful sign-in.
+      }
+    }
     await _authService.signOut();
     state = const AsyncValue.data(null);
   }

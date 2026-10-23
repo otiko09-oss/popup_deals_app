@@ -11,7 +11,7 @@ Map<String, dynamic> _baseJson({Object? status, Object? isVerified}) => {
       'latitude': 41.7,
       'longitude': 44.8,
       'category': 'food',
-      'createdAt': DateTime(2026, 1, 1).toIso8601String(),
+      'createdAt': DateTime(2026).toIso8601String(),
       if (status != null) 'status': status,
       if (isVerified != null) 'isVerified': isVerified,
     };
@@ -41,22 +41,20 @@ void main() {
       expect(approved.isVerified, isTrue);
     });
 
-    test('backward compat: old isVerified:true documents map to approved',
-        () {
+    test('backward compat: old isVerified:true documents map to approved', () {
       final biz = BusinessModel.fromJson(_baseJson(isVerified: true));
       expect(biz.status, 'approved');
       expect(biz.isApproved, isTrue);
     });
 
-    test('backward compat: old isVerified:false documents map to pending',
-        () {
+    test('backward compat: old isVerified:false documents map to pending', () {
       final biz = BusinessModel.fromJson(_baseJson(isVerified: false));
       expect(biz.status, 'pending');
     });
 
     test('explicit status takes precedence over legacy isVerified', () {
-      final biz =
-          BusinessModel.fromJson(_baseJson(status: 'rejected', isVerified: true));
+      final biz = BusinessModel.fromJson(
+          _baseJson(status: 'rejected', isVerified: true));
       expect(biz.status, 'rejected');
     });
   });

@@ -66,6 +66,7 @@ class OrderModel extends Equatable {
     this.readyAt,
     this.completedAt,
     this.notes,
+    this.redemptionId,
     this.quantity = 1,
   });
 
@@ -101,6 +102,7 @@ class OrderModel extends Equatable {
         businessLongitude:
             (json['businessLongitude'] as num?)?.toDouble() ?? 0.0,
         notes: json['notes'] as String?,
+        redemptionId: json['redemptionId'] as String?,
         quantity: json['quantity'] as int? ?? 1,
       );
   final String id;
@@ -130,6 +132,8 @@ class OrderModel extends Equatable {
 
   // Notes
   final String? notes;
+  /// The server-created one-time QR redemption linked to this reservation.
+  final String? redemptionId;
   final int quantity;
 
   /// Convert OrderModel to JSON for Firestore
@@ -153,6 +157,7 @@ class OrderModel extends Equatable {
         'businessLatitude': businessLatitude,
         'businessLongitude': businessLongitude,
         'notes': notes,
+        'redemptionId': redemptionId,
         'quantity': quantity,
       };
 
@@ -177,6 +182,7 @@ class OrderModel extends Equatable {
     double? businessLatitude,
     double? businessLongitude,
     String? notes,
+    String? redemptionId,
     int? quantity,
   }) =>
       OrderModel(
@@ -199,6 +205,7 @@ class OrderModel extends Equatable {
         businessLatitude: businessLatitude ?? this.businessLatitude,
         businessLongitude: businessLongitude ?? this.businessLongitude,
         notes: notes ?? this.notes,
+        redemptionId: redemptionId ?? this.redemptionId,
         quantity: quantity ?? this.quantity,
       );
 
@@ -240,6 +247,7 @@ class OrderModel extends Equatable {
         businessLatitude,
         businessLongitude,
         notes,
+        redemptionId,
         quantity,
       ];
 }

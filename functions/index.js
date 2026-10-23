@@ -171,6 +171,42 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
   return { url: session.url };
 });
 
+/**
+ * Opens Stripe's hosted Billing Portal for the business owner. This is the
+ * only client-accessible way to change a paid subscription, payment method,
+ * or invoices: Stripe remains the billing source of truth and webhooks keep
+ * Firestore in sync afterwards.
+ */
+exports.createBillingPortalSession = functions.https.onCall(async (data, context) => {
+  const uid = requireAuthenticated(context);
+  await ensureNotBlocked(uid);
+  const { businessId } = data || {};
+  if (typeof businessId !== "string" || !businessId) {
+    throw new functions.https.HttpsError("invalid-argument", "businessId is required.");
+  }
+  if (businessId !== uid) {
+    throw new functions.https.HttpsError(
+      "permission-denied",
+      "You can only manage your own business subscription."
+    );
+  }
+
+  const subscription = await db.collection("subscriptions").doc(businessId).get();
+  const customerId = subscription.exists && subscription.data().stripeCustomerId;
+  if (typeof customerId !== "string" || !customerId) {
+    throw new functions.https.HttpsError(
+      "failed-precondition",
+      "There is no Stripe subscription to manage yet."
+    );
+  }
+
+  const session = await stripe.billingPortal.sessions.create({
+    customer: customerId,
+    return_url: "https://popupdeals.app/subscription",
+  });
+  return { url: session.url };
+});
+
 /** Creates an order and its one-time QR redemption from server-verified data. */
 exports.createReservation = functions.https.onCall(async (data, context) => {
   const uid = requireAuthenticated(context);
@@ -226,6 +262,97 @@ exports.createReservation = functions.https.onCall(async (data, context) => {
     { type: "reservation_created", orderId: orderRef.id }
   );
   return { orderId: orderRef.id, redemption: serializeTimestamps(redemption) };
+});
+
+/**
+ * Creates or updates the caller's review for one completed reservation.
+ * The order itself is the review key, so a customer can review an actually
+ * completed purchase exactly once while still being able to correct a rating
+ * or comment later. Aggregate ratings are maintained in the same transaction.
+ */
+exports.submitReview = functions.https.onCall(async (data, context) => {
+  const uid = requireAuthenticated(context);
+  await ensureNotBlocked(uid);
+  const { orderId, rating, comment = "" } = data || {};
+  if (typeof orderId !== "string" || !orderId || !Number.isInteger(rating) || rating < 1 || rating > 5) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "A completed order and a rating from 1 to 5 are required."
+    );
+  }
+  if (typeof comment !== "string" || comment.trim().length > 1000) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "A review comment must contain at most 1000 characters."
+    );
+  }
+
+  const userSnap = await db.collection("users").doc(uid).get();
+  const user = userSnap.exists ? userSnap.data() : {};
+  const orderRef = db.collection("orders").doc(orderId);
+  const reviewRef = db.collection("reviews").doc(orderId);
+  const review = await db.runTransaction(async tx => {
+    const orderSnap = await tx.get(orderRef);
+    if (!orderSnap.exists) throw new functions.https.HttpsError("not-found", "Order not found.");
+    const order = orderSnap.data();
+    if (order.userId !== uid) {
+      throw new functions.https.HttpsError("permission-denied", "This order belongs to another account.");
+    }
+    if (order.status !== "completed") {
+      throw new functions.https.HttpsError(
+        "failed-precondition",
+        "You can review a deal only after it has been completed."
+      );
+    }
+
+    const businessRef = db.collection("businesses").doc(order.businessId);
+    const [existingReview, businessSnap] = await Promise.all([
+      tx.get(reviewRef),
+      tx.get(businessRef),
+    ]);
+    if (!businessSnap.exists) {
+      throw new functions.https.HttpsError("failed-precondition", "Business not found.");
+    }
+    if (existingReview.exists && existingReview.data().userId !== uid) {
+      throw new functions.https.HttpsError("permission-denied", "This review belongs to another account.");
+    }
+
+    const business = businessSnap.data();
+    const previousRating = existingReview.exists ? Number(existingReview.data().rating) : null;
+    const currentCount = Math.max(0, Number(business.ratingCount || 0));
+    const currentSum = Math.max(0, Number(business.ratingSum || 0));
+    const nextCount = previousRating == null ? currentCount + 1 : currentCount;
+    const nextSum = currentSum - (previousRating || 0) + rating;
+    const now = new Date().toISOString();
+    const nextReview = {
+      id: orderId,
+      orderId,
+      userId: uid,
+      userName: String(user.displayName || context.auth.token.name || "Customer").slice(0, 80),
+      businessId: order.businessId,
+      dealId: order.dealId,
+      rating,
+      comment: comment.trim(),
+      createdAt: existingReview.exists ? existingReview.data().createdAt : now,
+      updatedAt: now,
+    };
+    tx.set(reviewRef, nextReview);
+    tx.set(businessRef, {
+      ratingCount: nextCount,
+      ratingSum: nextSum,
+      ratingAverage: Math.round((nextSum / nextCount) * 10) / 10,
+      ratingUpdatedAt: now,
+    }, { merge: true });
+    return nextReview;
+  });
+
+  await notifyUser(
+    review.businessId,
+    "New customer review",
+    `${review.userName} gave ${review.rating} star${review.rating === 1 ? "" : "s"} to ${review.dealId}.`,
+    { type: "review_created", orderId }
+  );
+  return { review: serializeTimestamps(review) };
 });
 
 /** Updates the order state with server-enforced role and state-transition checks. */

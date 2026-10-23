@@ -1,11 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:popup_deals_app/config/routes/app_routes.dart';
-import 'package:popup_deals_app/features/auth/presentation/providers/auth_provider.dart';
-
-import 'onboarding_page.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -43,34 +37,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    ref.listen<AsyncValue>(authStateProvider, (_, next) {
-      if (next.isLoading) return;
-      if (!context.mounted) return;
-
-      final isLoggedIn = next.asData?.value != null;
-      if (!isLoggedIn) {
-        SharedPreferences.getInstance().then((prefs) {
-          if (!context.mounted) return;
-          final seenOnboarding =
-              prefs.getBool(onboardingSeenPrefsKey) ?? false;
-          context.go(seenOnboarding ? AppRoutes.login : AppRoutes.onboarding);
-        });
-      }
-      // If logged in, the authProvider listener below handles the redirect
-      // once the user's profile (and userType) has finished loading.
-    });
-
-    ref.listen<AsyncValue>(authProvider, (_, next) {
-      if (next.isLoading) return;
-      if (!context.mounted) return;
-
-      final appUser = next.asData?.value;
-      if (appUser == null) return; // not logged in; handled above
-
-      final isBusinessUser = appUser.userType == 'restaurant';
-      context.go(isBusinessUser ? AppRoutes.businessDeals : AppRoutes.home);
-    });
 
     return Scaffold(
       backgroundColor: theme.colorScheme.primary,

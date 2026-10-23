@@ -38,6 +38,37 @@ class SubscriptionPage extends ConsumerWidget {
           children: [
             if (current != null && current.isActive)
               _CurrentPlanBanner(subscription: current),
+            if (current?.stripeCustomerId?.isNotEmpty ?? false) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.receipt_long_outlined),
+                label: const Text('Manage billing, invoices and cancellation'),
+                onPressed: () async {
+                  try {
+                    final portalUrl = await ref
+                        .read(subscriptionServiceProvider)
+                        .openBillingPortal(businessId: businessId);
+                    final launched = await launchUrl(
+                      Uri.parse(portalUrl),
+                      mode: LaunchMode.externalApplication,
+                    );
+                    if (!launched && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Could not open the billing portal.'),
+                        ),
+                      );
+                    }
+                  } on Object catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Billing portal failed: $e')),
+                      );
+                    }
+                  }
+                },
+              ),
+            ],
             const SizedBox(height: 16),
             Text(
               'Choose a plan to publish deals and reach new customers.',

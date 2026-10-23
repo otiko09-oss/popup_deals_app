@@ -1,5 +1,5 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:popup_deals_app/core/services/notification_service.dart';
 
 final notificationServiceProvider = Provider<NotificationService>((ref) {

@@ -5,7 +5,7 @@ AppUser _baseUser({bool? isAdmin}) => AppUser(
       uid: 'uid_123',
       email: 'test@example.com',
       userType: 'customer',
-      createdAt: DateTime(2026, 1, 1),
+      createdAt: DateTime(2026),
       lastSignIn: DateTime(2026, 1, 2),
       isVerified: true,
       favorites: const ['deal_1'],
